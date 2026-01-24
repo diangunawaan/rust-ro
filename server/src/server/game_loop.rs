@@ -19,7 +19,7 @@ use crate::server::model::movement::{Movable, Movement};
 use crate::server::service::global_config_service::GlobalConfigService;
 use crate::server::service::status_service::StatusService;
 
-const MOVEMENT_TICK_RATE: u128 = 16;
+const MOVEMENT_TICK_RATE: u128 = 20;
 pub const GAME_TICK_RATE: u128 = 40;
 
 impl Server {
@@ -149,6 +149,8 @@ impl Server {
                     GameEvent::CharacterAttack(character_attack) => {
                         let character = server_state_mut.characters_mut().get_mut(&character_attack.char_id).unwrap();
                         if !character.is_attacking() {
+                            // last_attack_tick = 0 allows first attack to happen immediately
+                            // canmove_tick is set in basic_attack() when attack animation starts
                             character.set_attack(character_attack.target_id, character_attack.repeat, 0);
                         }
                     }
@@ -445,6 +447,7 @@ impl Server {
                             }
                         }
                         character.set_movement(character_movement.path);
+                        character.transition_to_moving();
                         let movement = character.peek_mut_movement().unwrap();
                         movement.set_move_at(move_at);
                         let moved_at = movement.move_at() as u32;
@@ -571,6 +574,7 @@ impl Server {
                 }
             }
             for character in character_finished_to_move {
+                character.transition_to_idle();
                 persistence_event_sender
                     .send(SaveCharacterPosition(SavePositionUpdate {
                         account_id: character.account_id,

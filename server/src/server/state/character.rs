@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use accessor::Setters;
@@ -16,6 +17,72 @@ use crate::server::model::map_instance::MapInstanceKey;
 use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType, ToMapItem, ToMapItemSnapshot};
 use crate::server::model::movement::{Movable, Movement};
 use crate::server::script::ScriptGlobalVariableStore;
+
+pub struct CharacterTiming {
+    /// Tick when character can move again
+    pub canmove_tick: AtomicU64,
+    /// Tick when character can act again (attack/skill)
+    pub canact_tick: AtomicU64,
+}
+
+impl CharacterTiming {
+    pub fn new() -> Self {
+        Self {
+            canmove_tick: AtomicU64::new(0),
+            canact_tick: AtomicU64::new(0),
+        }
+    }
+
+    /// Set canmove_tick (called by game loop)
+    pub fn set_canmove_tick(&self, tick: u128) {
+        self.canmove_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canmove_tick (called by movement thread)
+    pub fn get_canmove_tick(&self) -> u128 {
+        self.canmove_tick.load(Ordering::Acquire) as u128
+    }
+
+    /// Set canact_tick (called by game loop)
+    pub fn set_canact_tick(&self, tick: u128) {
+        self.canact_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canact_tick
+    pub fn get_canact_tick(&self) -> u128 {
+        self.canact_tick.load(Ordering::Acquire) as u128
+    }
+}
+
+impl Default for CharacterTiming {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Character action state machine
+#[derive(Clone, Debug, Default)]
+pub enum CharacterAction {
+    /// Character is idle
+    #[default]
+    Idle,
+    /// Character is moving
+    Moving,
+    /// Character is attacking a target
+    Attacking {
+        target_id: u32,
+        repeat: bool,
+    },
+    /// Character is casting/using a skill
+    UsingSkill {
+        target_id: Option<u32>,
+        skill_id: u32,
+    },
+    /// Character is sitting
+    Sitting,
+    /// Character is dead
+    Dead,
+}
 
 /// Character state
 #[derive(Setters)]
@@ -69,11 +136,12 @@ pub struct Character {
     pub last_moved_at: u128,
     pub last_regen_hp_at: u128,
     pub last_regen_sp_at: u128,
-    pub sit: bool,
 
     pub hotkeys: Vec<Hotkey>,
     // 1 male, 0 female
     pub sex: u8,
+    pub timing: CharacterTiming,
+    pub action: CharacterAction,
 }
 
 type InventoryIter<'a> = Box<dyn Iterator<Item = (usize, &'a InventoryItemModel)> + 'a>;
@@ -124,9 +192,10 @@ impl Character {
             last_moved_at: 0,
             last_regen_hp_at: 0,
             last_regen_sp_at: 0,
-            sit: false,
             hotkeys,
             sex,
+            timing: CharacterTiming::new(),
+            action: CharacterAction::Idle,
         }
     }
 
@@ -144,13 +213,14 @@ impl Character {
     }
 
     pub fn is_attacking(&self) -> bool {
-        self.attack.is_some()
+        matches!(self.action, CharacterAction::Attacking { .. })
     }
 
     pub fn is_using_skill(&self) -> bool {
-        self.skill_in_use.is_some()
+        matches!(self.action, CharacterAction::UsingSkill { .. })
     }
 
+    /// Can attack from: Idle, Moving (not from Dead, Sitting, UsingSkill)
     pub fn set_attack(&mut self, target_id: u32, repeat: bool, tick: u128) {
         self.attack = Some(Attack {
             target: target_id,
@@ -158,15 +228,31 @@ impl Character {
             last_attack_tick: tick,
             last_attack_motion: 0,
         });
+        // Sync state machine - only if in valid state
+        match self.action {
+            CharacterAction::Idle | CharacterAction::Moving => {
+                self.action = CharacterAction::Attacking { target_id, repeat };
+            }
+            _ => {}
+        }
     }
 
+    /// Can use skill from: Idle, Moving (not from Dead, Sitting, Attacking)
     pub fn set_skill_in_use(&mut self, target_id: Option<u32>, start_skill_tick: u128, skill: Box<dyn Skill>) {
+        let skill_id = skill.id();
         self.skill_in_use = Some(SkillInUse {
             target: target_id,
             start_skill_tick,
             skill,
             used_at_tick: None,
         });
+        // Sync state machine - only if in valid state
+        match self.action {
+            CharacterAction::Idle | CharacterAction::Moving => {
+                self.action = CharacterAction::UsingSkill { target_id, skill_id };
+            }
+            _ => {}
+        }
     }
 
     pub fn attack(&self) -> Attack {
@@ -183,6 +269,106 @@ impl Character {
 
     pub fn clear_attack(&mut self) {
         self.attack = None;
+        // Sync state machine - only if was attacking
+        if matches!(self.action, CharacterAction::Attacking { .. }) {
+            self.action = CharacterAction::Idle;
+        }
+    }
+
+    /// Check if character can move at the given tick (atomic check for movement thread)
+    pub fn can_move(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canmove_tick()
+    }
+
+    /// Check if character can act (attack/skill) at the given tick
+    pub fn can_act(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canact_tick()
+    }
+
+    /// Get the tick when character can move again
+    pub fn get_canmove_tick(&self) -> u128 {
+        self.timing.get_canmove_tick()
+    }
+
+    // --- State machine queries ---
+
+    pub fn is_idle(&self) -> bool {
+        matches!(self.action, CharacterAction::Idle)
+    }
+
+    pub fn is_sitting(&self) -> bool {
+        matches!(self.action, CharacterAction::Sitting)
+    }
+
+    pub fn is_dead(&self) -> bool {
+        matches!(self.action, CharacterAction::Dead)
+    }
+
+    pub fn current_action(&self) -> &CharacterAction {
+        &self.action
+    }
+
+    // --- State machine transitions ---
+
+    /// Can transition to Moving from: Idle, Attacking (cancel attack to move)
+    pub fn transition_to_moving(&mut self) -> bool {
+        match self.action {
+            CharacterAction::Idle | CharacterAction::Attacking { .. } => {
+                self.action = CharacterAction::Moving;
+                true
+            }
+            _ => false, // Cannot move while Dead, Sitting, UsingSkill, or already Moving
+        }
+    }
+
+    /// Can transition to Idle from: Moving, Attacking, UsingSkill
+    pub fn transition_to_idle(&mut self) -> bool {
+        match self.action {
+            CharacterAction::Moving | CharacterAction::Attacking { .. } | CharacterAction::UsingSkill { .. } => {
+                self.action = CharacterAction::Idle;
+                self.attack = None;
+                self.skill_in_use = None;
+                true
+            }
+            _ => false, // Cannot go Idle from Dead or Sitting (use transition_to_standing)
+        }
+    }
+
+    /// Can transition to Sitting from: Idle only
+    pub fn transition_to_sitting(&mut self) -> bool {
+        if matches!(self.action, CharacterAction::Idle) {
+            self.action = CharacterAction::Sitting;
+            self.clear_attack();
+            self.movements.clear();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Can transition to Idle from: Sitting only
+    pub fn transition_to_standing(&mut self) -> bool {
+        if matches!(self.action, CharacterAction::Sitting) {
+            self.action = CharacterAction::Idle;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Dead overrides any state - always succeeds
+    pub fn transition_to_dead(&mut self) -> bool {
+        self.action = CharacterAction::Dead;
+        self.clear_attack();
+        self.movements.clear();
+        true
+    }
+
+    /// Update movement state - call when movement completes
+    pub fn update_movement_complete(&mut self) {
+        if matches!(self.action, CharacterAction::Moving) && !self.is_moving() {
+            self.action = CharacterAction::Idle;
+        }
     }
 
     pub fn update_skill_used_at_tick(&mut self, tick: u128) {
@@ -199,6 +385,10 @@ impl Character {
 
     pub fn clear_skill_in_use(&mut self) {
         self.skill_in_use = None;
+        // Sync state machine - only if was using skill
+        if matches!(self.action, CharacterAction::UsingSkill { .. }) {
+            self.action = CharacterAction::Idle;
+        }
     }
 
     pub fn update_position(&mut self, x: u16, y: u16) {

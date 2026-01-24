@@ -8,7 +8,7 @@ use crate::server::service::skill_service::SkillService;
 use crate::server::service::status_service::StatusService;
 use crate::tests::common;
 use crate::tests::common::sync_helper::CountDownLatch;
-use crate::tests::common::{TestContext, create_mpsc, test_script_vm};
+use crate::tests::common::{create_mpsc, test_script_vm, TestContext};
 
 struct SkillServiceTestContext {
     test_context: TestContext,
@@ -103,7 +103,7 @@ mod tests {
     };
     use crate::tests::common::mob_helper::create_mob;
     use crate::tests::skill_service_test::before_each;
-    use crate::{GlobalConfigService, assert_sent_packet_in_current_packetver, assert_vec_equals, status_snapshot};
+    use crate::{assert_sent_packet_in_current_packetver, assert_vec_equals, status_snapshot, GlobalConfigService};
 
     #[test]
     fn start_use_skill_should_validate_sp_requirement() {
@@ -862,7 +862,7 @@ mod tests {
             // SkillEnum::from_id(scenarii.skill_to_use().skid()).to_name(),
             // scenarii);
         }
-        let path = Path::new("../doc/progress/offensive-skills-progress.md");
+        let path = Path::new("../docs/progress/offensive-skills-progress.md");
         let mut result_file = File::create(path).unwrap();
         result_file
             .write_all(

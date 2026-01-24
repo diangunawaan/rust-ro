@@ -24,6 +24,10 @@ impl MobService {
     }
 
     pub fn action_move(&self, mob: &mut Mob, cells: &[u16], x_size: u16, y_size: u16, start_at: u128) -> Option<MobMovement> {
+        // Check state machine - can't move if flinching or dead
+        if !mob.can_act() {
+            return None;
+        }
         if !mob.is_present()
             || mob.is_moving()
             || mob.status.speed() == 1000
@@ -47,6 +51,10 @@ impl MobService {
             let current_y = mob.y;
             if let Some((x, y)) = Map::find_random_walkable_cell_in_max_range(cells, x_size, y_size, current_x, current_y, rand_distance) {
                 if current_x == x && current_y == y {
+                    return None;
+                }
+                // Try to transition first - if blocked, don't set movement
+                if !mob.transition_to_moving() {
                     return None;
                 }
                 let from = Position {

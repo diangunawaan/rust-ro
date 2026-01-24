@@ -1,16 +1,15 @@
-use std::thread::sleep;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use models::position::Position;
 use packets::packets::{PacketCzRequestMove, PacketCzRequestMove2};
 
-use crate::server::Server;
 use crate::server::model::events::game_event::CharacterMovement;
 use crate::server::model::events::game_event::GameEvent::CharacterMove;
 use crate::server::model::movement::{Movable, Movement};
 use crate::server::model::path::path_search_client_side_algorithm;
 use crate::server::model::position::PositionPacket;
 use crate::server::model::request::Request;
+use crate::server::Server;
 
 pub fn handle_char_move(server: &Server, context: Request) {
     let destination = if context.packet().as_any().downcast_ref::<PacketCzRequestMove2>().is_some() {
@@ -51,16 +50,14 @@ pub fn handle_char_move(server: &Server, context: Request) {
         destination.x,
         destination.y,
     );
-    let start_at = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-    if character.is_attacking() {
-        let attack = character.attack();
-        if attack.last_attack_tick as i128 + attack.last_attack_motion as i128 - 40 > start_at as i128 {
-            let delay = ((attack.last_attack_tick + attack.last_attack_motion as u128) - 40 - start_at) as u64;
-            info!("Character is attacking, move will be delayed by {}ms", delay);
-            sleep(Duration::from_millis(delay));
-        }
-    }
-    let start_at = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let tick = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let canmove_tick = character.get_canmove_tick();
+    let start_at = if tick < canmove_tick {
+        debug!("Character movement delayed until canmove_tick: {}ms", canmove_tick - tick);
+        canmove_tick
+    } else {
+        tick
+    };
     let path = Movement::from_path(path, start_at);
     // if let Some(previous_movement) = maybe_previous_movement {
     //     path.push(previous_movement);

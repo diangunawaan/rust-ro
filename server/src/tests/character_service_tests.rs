@@ -15,7 +15,7 @@ use crate::server::service::global_config_service::GlobalConfigService;
 use crate::server::service::status_service::StatusService;
 use crate::tests::common;
 use crate::tests::common::sync_helper::CountDownLatch;
-use crate::tests::common::{TestContext, create_mpsc, test_script_vm};
+use crate::tests::common::{create_mpsc, test_script_vm, TestContext};
 
 struct CharacterServiceTestContext {
     test_context: TestContext,
@@ -66,9 +66,9 @@ fn before_each_with_latch(character_repository: Arc<dyn CharacterRepository + Sy
 #[cfg(test)]
 #[cfg(not(feature = "integration_tests"))]
 mod tests {
-    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering::Relaxed;
+    use std::sync::Arc;
     use std::time::Duration;
 
     use async_trait::async_trait;
@@ -95,10 +95,10 @@ mod tests {
     use crate::server::model::movement::Movement;
     use crate::server::model::tasks_queue::TasksQueue;
     use crate::server::service::global_config_service::GlobalConfigService;
-    use crate::tests::character_service_tests::{GameEvent, before_each};
+    use crate::tests::character_service_tests::{before_each, GameEvent};
     use crate::tests::common::assert_helper::{
-        NotificationExpectation, SentPacket, has_sent_notification, has_sent_persistence_event, task_queue_contains_event,
-        task_queue_contains_event_at_tick,
+        has_sent_notification, has_sent_persistence_event, task_queue_contains_event, task_queue_contains_event_at_tick, NotificationExpectation,
+        SentPacket,
     };
     use crate::tests::common::character_helper::{add_items_in_inventory, create_character};
     use crate::tests::common::map_instance_helper::create_empty_map_instance;
@@ -2976,7 +2976,6 @@ mod tests {
         let mut character_state = create_character();
         character_state.status.max_hp = 100;
         character_state.status.hp = 1;
-        character_state.sit = false;
         // When, Stand, last moved is before 6sec, should not regen
         character_state.last_moved_at = 8000;
         character_state.last_regen_hp_at = 1000;
@@ -3001,14 +3000,14 @@ mod tests {
         assert_eq!(character_state.status.hp, 1);
         // When, Sit, last hp regen and last move is greater than 3sec, should regen
         character_state.status.hp = 1;
-        character_state.sit = true;
+        character_state.transition_to_sitting();
         character_state.last_moved_at = 8000;
         character_state.last_regen_hp_at = 8000;
         context.character_service.regen_hp(&mut character_state, 11200);
         assert_eq!(character_state.status.hp, 2);
         // When, hp is already at max
         character_state.status.hp = 100;
-        character_state.sit = true;
+        character_state.transition_to_sitting();
         character_state.last_moved_at = 8000;
         character_state.last_regen_hp_at = 8000;
         context.character_service.regen_hp(&mut character_state, 11200);
@@ -3022,7 +3021,6 @@ mod tests {
         let mut character_state = create_character();
         character_state.status.max_sp = 100;
         character_state.status.sp = 1;
-        character_state.sit = false;
         // When, Stand, last moved is before 8sec, should not regen
         character_state.last_moved_at = 8000;
         character_state.last_regen_sp_at = 1000;
@@ -3047,14 +3045,14 @@ mod tests {
         assert_eq!(character_state.status.sp, 1);
         // When, Sit, last sp regen and last move is greater than 4sec, should regen
         character_state.status.sp = 1;
-        character_state.sit = true;
+        character_state.transition_to_sitting();
         character_state.last_moved_at = 8000;
         character_state.last_regen_sp_at = 8000;
         context.character_service.regen_sp(&mut character_state, 12200);
         assert_eq!(character_state.status.sp, 2);
         // When, sp is already at max
         character_state.status.sp = 100;
-        character_state.sit = true;
+        character_state.transition_to_sitting();
         character_state.last_moved_at = 8000;
         character_state.last_regen_sp_at = 8000;
         context.character_service.regen_sp(&mut character_state, 12200);

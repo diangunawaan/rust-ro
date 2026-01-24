@@ -1,9 +1,9 @@
 use std::ops::Deref;
-use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
+use std::sync::Arc;
 
-use models::enums::EnumWithNumberValue;
 use models::enums::vanish::VanishType;
+use models::enums::EnumWithNumberValue;
 use models::item::DroppedItem;
 use models::position::Position;
 use packets::packets::{Packet, PacketZcItemDisappear, PacketZcItemFallEntry, PacketZcNotifyMove, PacketZcNotifyVanish};
@@ -156,6 +156,8 @@ impl MapInstanceService {
             }
             mob.add_attack(damage.attacker_id, damage.damage);
             mob.last_attacked_at = tick;
+            // Transition to flinching state - clears movement and sets canmove_tick
+            mob.transition_to_flinching(tick);
             if mob.should_die() {
                 let delay = damage.attacked_at - tick;
                 let id = mob.id;

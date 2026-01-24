@@ -275,7 +275,9 @@ impl CharacterService {
     }
 
     pub fn sit(&self, character: &mut Character) {
-        character.sit = true;
+        if !character.transition_to_sitting() {
+            return;
+        }
         let mut packet_zc_msg_state_change = PacketZcMsgStateChange2::new(self.configuration_service.packetver());
         packet_zc_msg_state_change.set_aid(character.char_id);
         packet_zc_msg_state_change.set_index(ClientEffectIcon::Sit as i16);
@@ -296,7 +298,9 @@ impl CharacterService {
     }
 
     pub fn stand(&self, character: &mut Character) {
-        character.sit = false;
+        if !character.transition_to_standing() {
+            return;
+        }
         let mut packet_zc_msg_state_change = PacketZcMsgStateChange::new(self.configuration_service.packetver());
         packet_zc_msg_state_change.set_aid(character.char_id);
         packet_zc_msg_state_change.set_index(ClientEffectIcon::Sit as i16);
@@ -317,7 +321,7 @@ impl CharacterService {
 
     pub fn regen_hp(&self, character: &mut Character, tick: u128) {
         let character_status = self.status_service.to_snapshot_cached(&character.status, tick);
-        let delay = if character.sit { 3000 } else { 6000 };
+        let delay = if character.is_sitting() { 3000 } else { 6000 };
         if tick > character.last_moved_at
             && tick - character.last_moved_at >= delay
             && tick > character.last_regen_hp_at
@@ -343,7 +347,7 @@ impl CharacterService {
 
     pub fn regen_sp(&self, character: &mut Character, tick: u128) {
         let character_status = self.status_service.to_snapshot_cached(&character.status, tick);
-        let delay = if character.sit { 4000 } else { 8000 };
+        let delay = if character.is_sitting() { 4000 } else { 8000 };
         if tick > character.last_moved_at
             && tick - character.last_moved_at >= delay
             && tick > character.last_regen_sp_at
@@ -1528,8 +1532,30 @@ impl CharacterService {
     }
 
     pub fn cancel_movement(&self, character: &mut Character, tick: u128) {
-        let mut packet_zc_stop_move = PacketZcStopmove::new(GlobalConfigService::instance().packetver());
+        // Calculate position based on movement progress to avoid visual teleport
+        // Client interpolates position smoothly, so if we're > 50% to next cell,
+        // snap forward instead of backward
+        if let Some(movement) = character.peek_movement() {
+            let move_at = movement.move_at();
+            let last_moved_at = character.last_moved_at;
+            let next_pos = *movement.position();
+
+            // Calculate progress through current movement (0.0 to 1.0)
+            if move_at > last_moved_at {
+                let total_duration = move_at - last_moved_at;
+                let elapsed = tick.saturating_sub(last_moved_at);
+                let progress = elapsed as f64 / total_duration as f64;
+
+                // If more than 50% through movement, snap to next cell
+                if progress > 0.5 {
+                    character.update_position(next_pos.x, next_pos.y);
+                }
+            }
+        }
+
         character.clear_movement();
+
+        let mut packet_zc_stop_move = PacketZcStopmove::new(GlobalConfigService::instance().packetver());
         packet_zc_stop_move.set_x_pos(character.x as i16);
         packet_zc_stop_move.set_y_pos(character.y as i16);
         packet_zc_stop_move.set_aid(character.char_id);

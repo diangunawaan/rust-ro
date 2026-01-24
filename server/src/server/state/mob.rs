@@ -1,10 +1,71 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use models::position::Position;
 use models::status::StatusSnapshot;
 
 use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType, ToMapItem, ToMapItemSnapshot};
 use crate::server::model::movement::{Movable, Movement};
+
+/// Mob action state machine
+#[derive(Clone, Debug)]
+pub enum MobAction {
+    /// Mob is idle, waiting for next action
+    Idle,
+    /// Mob is moving along a path
+    Moving,
+    /// Mob is chasing a target
+    Chasing { target_id: u32 },
+    /// Mob is attacking a target
+    Attacking { target_id: u32, last_attack_at: u128 },
+    /// Mob is flinching from damage (cannot move)
+    Flinching { until: u128 },
+    /// Mob is returning to spawn area
+    Returning,
+}
+
+impl Default for MobAction {
+    fn default() -> Self {
+        MobAction::Idle
+    }
+}
+
+pub struct MobTiming {
+    /// Tick when mob can move again (after flinch/damage)
+    pub canmove_tick: AtomicU64,
+}
+
+impl MobTiming {
+    pub fn new() -> Self {
+        Self {
+            canmove_tick: AtomicU64::new(0),
+        }
+    }
+
+    /// Set canmove_tick (called when mob takes damage)
+    pub fn set_canmove_tick(&self, tick: u128) {
+        self.canmove_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canmove_tick (called by mob movement thread)
+    pub fn get_canmove_tick(&self) -> u128 {
+        self.canmove_tick.load(Ordering::Acquire) as u128
+    }
+}
+
+impl Default for MobTiming {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Clone for MobTiming {
+    fn clone(&self) -> Self {
+        Self {
+            canmove_tick: AtomicU64::new(self.canmove_tick.load(Ordering::Relaxed)),
+        }
+    }
+}
 
 #[derive(Setters, Clone)]
 pub struct Mob {
@@ -26,6 +87,8 @@ pub struct Mob {
     pub to_remove: bool,
     pub last_moved_at: u128,
     pub damage_motion: u32,
+    pub timing: MobTiming,
+    pub action: MobAction,
 }
 
 pub struct MobMovement {
@@ -77,6 +140,8 @@ impl Mob {
             to_remove: false,
             last_moved_at: 0,
             damage_motion,
+            timing: MobTiming::new(),
+            action: MobAction::Idle,
         }
     }
 
@@ -155,6 +220,73 @@ impl Mob {
 
     pub fn set_last_moved_at(&mut self, tick: u128) {
         self.last_moved_at = tick;
+    }
+
+    /// Check if mob can move at the given tick (atomic check for movement thread)
+    pub fn can_move(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canmove_tick()
+    }
+
+    // --- State machine queries ---
+
+    pub fn is_flinching(&self) -> bool {
+        matches!(self.action, MobAction::Flinching { .. })
+    }
+
+    pub fn is_idle(&self) -> bool {
+        matches!(self.action, MobAction::Idle)
+    }
+
+    /// Check if mob can start a new action (not flinching)
+    pub fn can_act(&self) -> bool {
+        !self.is_flinching()
+    }
+
+    // --- State machine transitions ---
+
+    /// Flinching interrupts any action
+    pub fn transition_to_flinching(&mut self, tick: u128) {
+        let until = tick + self.damage_motion as u128;
+        self.action = MobAction::Flinching { until };
+        self.timing.set_canmove_tick(until);
+        self.movements.clear();
+    }
+
+    /// Can transition to Moving from: Idle only
+    pub fn transition_to_moving(&mut self) -> bool {
+        if matches!(self.action, MobAction::Idle) {
+            self.action = MobAction::Moving;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Transition to Idle - from Moving, Flinching (after timeout)
+    pub fn transition_to_idle(&mut self) -> bool {
+        match self.action {
+            MobAction::Moving | MobAction::Flinching { .. } => {
+                self.action = MobAction::Idle;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Update flinch state - call each tick to check if flinch is done
+    pub fn update_flinch(&mut self, tick: u128) {
+        if let MobAction::Flinching { until } = self.action {
+            if tick >= until {
+                self.action = MobAction::Idle;
+            }
+        }
+    }
+
+    /// Update movement state - call when movement completes
+    pub fn update_movement_complete(&mut self) {
+        if matches!(self.action, MobAction::Moving) && !self.is_moving() {
+            self.action = MobAction::Idle;
+        }
     }
 
     pub fn position(&self) -> Position {

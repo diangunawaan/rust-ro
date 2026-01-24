@@ -225,7 +225,11 @@ Subtracts 40ms (one game tick), allowing movement 40ms before attack animation e
 | Issue | Original Proposal | Correct Fix (per rathena) |
 |-------|-------------------|---------------------------|
 | 1. Mob stop packet | Send `PacketZcStopmove` | Do NOT send - use `canmove_tick` delay |
+<<<<<<< HEAD
 | 2. Attack tick init | Pass current tick | Pass current tick + calculate future `attackabletime` |
+=======
+| 2. Attack tick init | ~~Pass current tick~~ | Keep 0 for immediate first attack. Use atomic `canmove_tick` for movement blocking |
+>>>>>>> 19b53ebd (Rework movements wip)
 | 3. Race condition | Process attack before movement | Queue-based `stepaction` system, single-threaded loop |
 | 4. Position mismatch | Use interpolated position | Use server position, update frequently after damage |
 | 5. Tick rate mismatch | Align tick rates | Single 20ms unified tick rate |

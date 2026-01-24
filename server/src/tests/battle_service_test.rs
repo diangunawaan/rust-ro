@@ -7,7 +7,7 @@ use crate::server::service::global_config_service::GlobalConfigService;
 use crate::server::service::status_service::StatusService;
 use crate::tests::common;
 use crate::tests::common::sync_helper::CountDownLatch;
-use crate::tests::common::{TestContext, create_mpsc, test_script_vm};
+use crate::tests::common::{create_mpsc, test_script_vm, TestContext};
 
 struct BattleServiceTestContext {
     test_context: TestContext,
@@ -710,7 +710,7 @@ mod tests {
         // Given
         let context = crate::tests::battle_service_test::before_each();
         let fixture_file = "src/tests/common/fixtures/data/attack-element-using-arrow.json";
-        let result_file_path = "../doc/progress/battle-attack-element-using-arrow_progress.md";
+        let result_file_path = "../docs/progress/battle-attack-element-using-arrow_progress.md";
         let scenario = crate::tests::common::fixtures::battle_fixture::BattleFixture::load(fixture_file);
 
         // let test_id: Option<&str> = Some("mjrt2g");
