@@ -7,7 +7,7 @@ use crate::server::service::global_config_service::GlobalConfigService;
 use crate::server::service::status_service::StatusService;
 use crate::tests::common;
 use crate::tests::common::sync_helper::CountDownLatch;
-use crate::tests::common::{TestContext, create_mpsc};
+use crate::tests::common::{create_mpsc, TestContext};
 
 pub struct StatusServiceTestContext {
     test_context: TestContext,
@@ -63,8 +63,8 @@ mod tests {
         create_character, equip_item_from_id_with_cards, equip_item_from_name, equip_item_from_name_with_cards,
         equip_item_with_cards_and_refinement,
     };
-    use crate::tests::common::fixtures::TestResult;
     use crate::tests::common::fixtures::battle_fixture::{BattleFixture, Equipment};
+    use crate::tests::common::fixtures::TestResult;
     use crate::{eq_with_variance, status_snapshot};
 
     #[test]
@@ -590,28 +590,28 @@ mod tests {
     #[test]
     fn test_all_stats_when_job_level_change() {
         let fixture_file = "src/tests/common/fixtures/data/stats-for-each-job-level.json";
-        let result_file_path = "../doc/progress/stats-for-each-job-level_progress.md";
+        let result_file_path = "../docs/progress/stats-for-each-job-level_progress.md";
         stats_tests(fixture_file, result_file_path, "Stats for each job level", None, false);
     }
 
     #[test]
     fn test_all_stats_when_equip_items() {
         let fixture_file = "src/tests/common/fixtures/data/stats-for-items.json";
-        let result_file_path = "../doc/progress/stats-for-each-items_progress.md";
+        let result_file_path = "../docs/progress/stats-for-each-items_progress.md";
         stats_tests(fixture_file, result_file_path, "Stats for each items", None, false);
     }
 
     #[test]
     fn test_each_stats() {
         let fixture_file = "src/tests/common/fixtures/data/stats-for-each-stats.json";
-        let result_file_path = "../doc/progress/each-bonus_progress.md";
+        let result_file_path = "../docs/progress/each-bonus_progress.md";
         stats_tests(fixture_file, result_file_path, "Each item bonus", None, false);
     }
 
     #[test]
     fn test_all_stats_when_card() {
         let fixture_file = "src/tests/common/fixtures/data/stats-for-cards.json";
-        let result_file_path = "../doc/progress/stats-for-each-card_progress.md";
+        let result_file_path = "../docs/progress/stats-for-each-card_progress.md";
         stats_tests(fixture_file, result_file_path, "Stats for each cards", None, false);
     }
 
@@ -619,7 +619,7 @@ mod tests {
     fn playground() {
         let id = "0g3rud";
         let fixture_file = "src/tests/common/fixtures/data/stats-for-cards.json";
-        let result_file_path = "../doc/progress/stats-for-each-items_progress.md";
+        let result_file_path = "../docs/progress/stats-for-each-items_progress.md";
         stats_tests(fixture_file, result_file_path, "Stats for each job level", Some(id), false);
     }
 
