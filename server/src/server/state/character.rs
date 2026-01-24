@@ -136,7 +136,6 @@ pub struct Character {
     pub last_moved_at: u128,
     pub last_regen_hp_at: u128,
     pub last_regen_sp_at: u128,
-    pub sit: bool,
 
     pub hotkeys: Vec<Hotkey>,
     // 1 male, 0 female
@@ -193,7 +192,6 @@ impl Character {
             last_moved_at: 0,
             last_regen_hp_at: 0,
             last_regen_sp_at: 0,
-            sit: false,
             hotkeys,
             sex,
             timing: CharacterTiming::new(),
@@ -215,11 +213,11 @@ impl Character {
     }
 
     pub fn is_attacking(&self) -> bool {
-        self.attack.is_some()
+        matches!(self.action, CharacterAction::Attacking { .. })
     }
 
     pub fn is_using_skill(&self) -> bool {
-        self.skill_in_use.is_some()
+        matches!(self.action, CharacterAction::UsingSkill { .. })
     }
 
     /// Can attack from: Idle, Moving (not from Dead, Sitting, UsingSkill)
@@ -299,7 +297,7 @@ impl Character {
     }
 
     pub fn is_sitting(&self) -> bool {
-        matches!(self.action, CharacterAction::Sitting) || self.sit
+        matches!(self.action, CharacterAction::Sitting)
     }
 
     pub fn is_dead(&self) -> bool {
@@ -340,7 +338,6 @@ impl Character {
     pub fn transition_to_sitting(&mut self) -> bool {
         if matches!(self.action, CharacterAction::Idle) {
             self.action = CharacterAction::Sitting;
-            self.sit = true;
             self.clear_attack();
             self.movements.clear();
             true
@@ -353,7 +350,6 @@ impl Character {
     pub fn transition_to_standing(&mut self) -> bool {
         if matches!(self.action, CharacterAction::Sitting) {
             self.action = CharacterAction::Idle;
-            self.sit = false;
             true
         } else {
             false

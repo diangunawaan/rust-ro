@@ -321,7 +321,7 @@ impl CharacterService {
 
     pub fn regen_hp(&self, character: &mut Character, tick: u128) {
         let character_status = self.status_service.to_snapshot_cached(&character.status, tick);
-        let delay = if character.sit { 3000 } else { 6000 };
+        let delay = if character.is_sitting() { 3000 } else { 6000 };
         if tick > character.last_moved_at
             && tick - character.last_moved_at >= delay
             && tick > character.last_regen_hp_at
@@ -347,7 +347,7 @@ impl CharacterService {
 
     pub fn regen_sp(&self, character: &mut Character, tick: u128) {
         let character_status = self.status_service.to_snapshot_cached(&character.status, tick);
-        let delay = if character.sit { 4000 } else { 8000 };
+        let delay = if character.is_sitting() { 4000 } else { 8000 };
         if tick > character.last_moved_at
             && tick - character.last_moved_at >= delay
             && tick > character.last_regen_sp_at
