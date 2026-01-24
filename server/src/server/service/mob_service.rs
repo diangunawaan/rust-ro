@@ -53,6 +53,10 @@ impl MobService {
                 if current_x == x && current_y == y {
                     return None;
                 }
+                // Try to transition first - if blocked, don't set movement
+                if !mob.transition_to_moving() {
+                    return None;
+                }
                 let from = Position {
                     x: current_x,
                     y: current_y,
@@ -63,7 +67,6 @@ impl MobService {
                 let path = path_search_client_side_algorithm(x_size, y_size, cells, mob.x, mob.y, to.x, to.y);
                 let path = Movement::from_path(path, start_at);
                 mob.movements = path;
-                mob.transition_to_moving();
             }
         }
         movement

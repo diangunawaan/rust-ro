@@ -250,31 +250,45 @@ impl Mob {
 
     // --- State machine transitions ---
 
-    /// Transition to Flinching state when taking damage
-    pub fn transition_to_flinching(&mut self, tick: u128) {
+    /// Flinching can happen from any state except Dead - always interrupts
+    pub fn transition_to_flinching(&mut self, tick: u128) -> bool {
+        if self.is_dead() {
+            return false;
+        }
         let until = tick + self.damage_motion as u128;
         self.action = MobAction::Flinching { until };
         self.timing.set_canmove_tick(until);
         // Clear movement queue when flinching
         self.movements.clear();
+        true
     }
 
-    /// Transition to Moving state
-    pub fn transition_to_moving(&mut self) {
-        if self.can_act() {
+    /// Can transition to Moving from: Idle only (not while Flinching, Dead, already Moving)
+    pub fn transition_to_moving(&mut self) -> bool {
+        if self.can_act() && matches!(self.action, MobAction::Idle) {
             self.action = MobAction::Moving;
+            true
+        } else {
+            false
         }
     }
 
-    /// Transition to Idle state
-    pub fn transition_to_idle(&mut self) {
-        self.action = MobAction::Idle;
+    /// Transition to Idle - from Moving, Flinching (after timeout)
+    pub fn transition_to_idle(&mut self) -> bool {
+        match self.action {
+            MobAction::Moving | MobAction::Flinching { .. } => {
+                self.action = MobAction::Idle;
+                true
+            }
+            _ => false,
+        }
     }
 
-    /// Transition to Dead state
-    pub fn transition_to_dead(&mut self, respawn_at: u128) {
+    /// Dead overrides any state - always succeeds
+    pub fn transition_to_dead(&mut self, respawn_at: u128) -> bool {
         self.action = MobAction::Dead { respawn_at };
         self.movements.clear();
+        true
     }
 
     /// Update flinch state - call each tick to check if flinch is done

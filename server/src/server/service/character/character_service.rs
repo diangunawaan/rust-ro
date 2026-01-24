@@ -275,7 +275,9 @@ impl CharacterService {
     }
 
     pub fn sit(&self, character: &mut Character) {
-        character.sit = true;
+        if !character.transition_to_sitting() {
+            return;
+        }
         let mut packet_zc_msg_state_change = PacketZcMsgStateChange2::new(self.configuration_service.packetver());
         packet_zc_msg_state_change.set_aid(character.char_id);
         packet_zc_msg_state_change.set_index(ClientEffectIcon::Sit as i16);
@@ -296,7 +298,9 @@ impl CharacterService {
     }
 
     pub fn stand(&self, character: &mut Character) {
-        character.sit = false;
+        if !character.transition_to_standing() {
+            return;
+        }
         let mut packet_zc_msg_state_change = PacketZcMsgStateChange::new(self.configuration_service.packetver());
         packet_zc_msg_state_change.set_aid(character.char_id);
         packet_zc_msg_state_change.set_index(ClientEffectIcon::Sit as i16);

@@ -447,6 +447,7 @@ impl Server {
                             }
                         }
                         character.set_movement(character_movement.path);
+                        character.transition_to_moving();
                         let movement = character.peek_mut_movement().unwrap();
                         movement.set_move_at(move_at);
                         let moved_at = movement.move_at() as u32;
@@ -573,6 +574,7 @@ impl Server {
                 }
             }
             for character in character_finished_to_move {
+                character.transition_to_idle();
                 persistence_event_sender
                     .send(SaveCharacterPosition(SavePositionUpdate {
                         account_id: character.account_id,
