@@ -24,6 +24,10 @@ impl MobService {
     }
 
     pub fn action_move(&self, mob: &mut Mob, cells: &[u16], x_size: u16, y_size: u16, start_at: u128) -> Option<MobMovement> {
+        // Check state machine - can't move if flinching or dead
+        if !mob.can_act() {
+            return None;
+        }
         if !mob.is_present()
             || mob.is_moving()
             || mob.status.speed() == 1000
@@ -59,6 +63,7 @@ impl MobService {
                 let path = path_search_client_side_algorithm(x_size, y_size, cells, mob.x, mob.y, to.x, to.y);
                 let path = Movement::from_path(path, start_at);
                 mob.movements = path;
+                mob.transition_to_moving();
             }
         }
         movement

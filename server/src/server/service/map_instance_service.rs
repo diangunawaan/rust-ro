@@ -156,7 +156,8 @@ impl MapInstanceService {
             }
             mob.add_attack(damage.attacker_id, damage.damage);
             mob.last_attacked_at = tick;
-            mob.timing.set_canmove_tick(tick + mob.damage_motion as u128);
+            // Transition to flinching state - clears movement and sets canmove_tick
+            mob.transition_to_flinching(tick);
             if mob.should_die() {
                 let delay = damage.attacked_at - tick;
                 let id = mob.id;

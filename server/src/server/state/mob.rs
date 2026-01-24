@@ -7,6 +7,31 @@ use models::status::StatusSnapshot;
 use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType, ToMapItem, ToMapItemSnapshot};
 use crate::server::model::movement::{Movable, Movement};
 
+/// Mob action state machine
+#[derive(Clone, Debug)]
+pub enum MobAction {
+    /// Mob is idle, waiting for next action
+    Idle,
+    /// Mob is moving along a path
+    Moving,
+    /// Mob is chasing a target
+    Chasing { target_id: u32 },
+    /// Mob is attacking a target
+    Attacking { target_id: u32, last_attack_at: u128 },
+    /// Mob is flinching from damage (cannot move)
+    Flinching { until: u128 },
+    /// Mob is returning to spawn area
+    Returning,
+    /// Mob is dead, waiting for respawn
+    Dead { respawn_at: u128 },
+}
+
+impl Default for MobAction {
+    fn default() -> Self {
+        MobAction::Idle
+    }
+}
+
 pub struct MobTiming {
     /// Tick when mob can move again (after flinch/damage)
     pub canmove_tick: AtomicU64,
@@ -65,6 +90,7 @@ pub struct Mob {
     pub last_moved_at: u128,
     pub damage_motion: u32,
     pub timing: MobTiming,
+    pub action: MobAction,
 }
 
 pub struct MobMovement {
@@ -117,6 +143,7 @@ impl Mob {
             last_moved_at: 0,
             damage_motion,
             timing: MobTiming::new(),
+            action: MobAction::Idle,
         }
     }
 
@@ -200,6 +227,70 @@ impl Mob {
     /// Check if mob can move at the given tick (atomic check for movement thread)
     pub fn can_move(&self, tick: u128) -> bool {
         tick >= self.timing.get_canmove_tick()
+    }
+
+    // --- State machine queries ---
+
+    pub fn is_flinching(&self) -> bool {
+        matches!(self.action, MobAction::Flinching { .. })
+    }
+
+    pub fn is_dead(&self) -> bool {
+        matches!(self.action, MobAction::Dead { .. })
+    }
+
+    pub fn is_idle(&self) -> bool {
+        matches!(self.action, MobAction::Idle)
+    }
+
+    /// Check if mob can start a new action (not flinching or dead)
+    pub fn can_act(&self) -> bool {
+        !self.is_flinching() && !self.is_dead()
+    }
+
+    // --- State machine transitions ---
+
+    /// Transition to Flinching state when taking damage
+    pub fn transition_to_flinching(&mut self, tick: u128) {
+        let until = tick + self.damage_motion as u128;
+        self.action = MobAction::Flinching { until };
+        self.timing.set_canmove_tick(until);
+        // Clear movement queue when flinching
+        self.movements.clear();
+    }
+
+    /// Transition to Moving state
+    pub fn transition_to_moving(&mut self) {
+        if self.can_act() {
+            self.action = MobAction::Moving;
+        }
+    }
+
+    /// Transition to Idle state
+    pub fn transition_to_idle(&mut self) {
+        self.action = MobAction::Idle;
+    }
+
+    /// Transition to Dead state
+    pub fn transition_to_dead(&mut self, respawn_at: u128) {
+        self.action = MobAction::Dead { respawn_at };
+        self.movements.clear();
+    }
+
+    /// Update flinch state - call each tick to check if flinch is done
+    pub fn update_flinch(&mut self, tick: u128) {
+        if let MobAction::Flinching { until } = self.action {
+            if tick >= until {
+                self.action = MobAction::Idle;
+            }
+        }
+    }
+
+    /// Update movement state - call when movement completes
+    pub fn update_movement_complete(&mut self) {
+        if matches!(self.action, MobAction::Moving) && !self.is_moving() {
+            self.action = MobAction::Idle;
+        }
     }
 
     pub fn position(&self) -> Position {

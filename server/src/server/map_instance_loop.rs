@@ -127,11 +127,20 @@ impl MapInstanceLoop {
 
                     map_instance_service.remove_dead_mobs(&mut map_instance_state);
                     let mobs = map_instance_state.mobs_mut();
-                    for mob in mobs.values_mut().filter(|mob| mob.is_moving()) {
+                    for mob in mobs.values_mut() {
+                        // Update flinch state - transition to Idle when done
+                        mob.update_flinch(tick);
+
+                        // Skip movement if not moving
+                        if !mob.is_moving() {
+                            continue;
+                        }
+
                         let speed = mob.status.speed();
                         if let Some(movement) = mob.peek_movement() {
                             if tick >= movement.move_at() {
-                                if !mob.can_move(tick) {
+                                // Check state machine - skip if flinching
+                                if !mob.can_move(tick) || mob.is_flinching() {
                                     #[cfg(feature = "debug_mob_movement")]
                                     {
                                         info!("Mob delayed movement because he is flinching");
@@ -148,6 +157,9 @@ impl MapInstanceLoop {
 
                                 if let Some(next_movement) = mob.peek_mut_movement() {
                                     next_movement.set_move_at(tick + Movement::delay(speed, next_movement.is_diagonal()))
+                                } else {
+                                    // Movement complete - transition to Idle
+                                    mob.update_movement_complete();
                                 }
                             }
                         }
