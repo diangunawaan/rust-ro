@@ -111,3 +111,27 @@ This section contains guidance for common implementation tasks
 - In addition to business logic the service can also send packet to the client using: `self.client_notification_sender.send(Notification::Char(CharNotification::new(character.char_id, packet_to_send.raw)))
                         .unwrap_or_else(|_| error!("Failed to send notification packet_to_send to client"));`
 - Implement unit test for the newly added service function
+
+## How to implement a bitflag?
+- Create the enum in `lib/models/src/enums/` (add to existing file or create new one)
+- Use derive macro: `#[derive(WithMaskValueU64)]` (or U32, U16, U8 depending on size needed)
+- First variant must have explicit `#[mask_value = 1]` attribute
+- Subsequent variants auto-double (2, 4, 8, 16...)
+- Use `#[mask_value = X]` to override specific values
+- Use `#[mask_all]` for a variant combining all flags
+- If creating a new file, add `pub mod filename;` to `lib/models/src/enums/mod.rs`
+
+Example:
+```rust
+#[derive(WithMaskValueU64, Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MyFlags {
+    #[mask_value = 1]
+    FirstFlag,
+    SecondFlag,      // = 2
+    ThirdFlag,       // = 4
+    #[mask_all]
+    All,
+}
+```
+
+Traits provided: `from_flag(value)`, `try_from_flag(value)`, `as_flag()`
