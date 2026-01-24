@@ -131,10 +131,10 @@ impl MapInstanceLoop {
                         let speed = mob.status.speed();
                         if let Some(movement) = mob.peek_movement() {
                             if tick >= movement.move_at() {
-                                if tick < mob.last_attacked_at + (mob.damage_motion as u128) {
+                                if !mob.can_move(tick) {
                                     #[cfg(feature = "debug_mob_movement")]
                                     {
-                                        info!("Mob delayed movement because he is attacked");
+                                        info!("Mob delayed movement because he is flinching");
                                     }
                                     continue;
                                 }

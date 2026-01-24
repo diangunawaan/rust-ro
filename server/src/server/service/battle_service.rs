@@ -352,6 +352,11 @@ impl BattleService {
         if tick < attack.last_attack_tick + attack_motion as u128 {
             return None;
         }
+        // Set atomic timing for cross-thread synchronization
+        let canmove_tick = tick + attack_motion as u128;
+        character.timing.set_canmove_tick(canmove_tick);
+        character.timing.set_canact_tick(canmove_tick);
+
         if !attack.repeat {
             // one shot attack
             character.clear_attack();

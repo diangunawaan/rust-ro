@@ -1,10 +1,48 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use models::position::Position;
 use models::status::StatusSnapshot;
 
 use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType, ToMapItem, ToMapItemSnapshot};
 use crate::server::model::movement::{Movable, Movement};
+
+pub struct MobTiming {
+    /// Tick when mob can move again (after flinch/damage)
+    pub canmove_tick: AtomicU64,
+}
+
+impl MobTiming {
+    pub fn new() -> Self {
+        Self {
+            canmove_tick: AtomicU64::new(0),
+        }
+    }
+
+    /// Set canmove_tick (called when mob takes damage)
+    pub fn set_canmove_tick(&self, tick: u128) {
+        self.canmove_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canmove_tick (called by mob movement thread)
+    pub fn get_canmove_tick(&self) -> u128 {
+        self.canmove_tick.load(Ordering::Acquire) as u128
+    }
+}
+
+impl Default for MobTiming {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Clone for MobTiming {
+    fn clone(&self) -> Self {
+        Self {
+            canmove_tick: AtomicU64::new(self.canmove_tick.load(Ordering::Relaxed)),
+        }
+    }
+}
 
 #[derive(Setters, Clone)]
 pub struct Mob {
@@ -26,6 +64,7 @@ pub struct Mob {
     pub to_remove: bool,
     pub last_moved_at: u128,
     pub damage_motion: u32,
+    pub timing: MobTiming,
 }
 
 pub struct MobMovement {
@@ -77,6 +116,7 @@ impl Mob {
             to_remove: false,
             last_moved_at: 0,
             damage_motion,
+            timing: MobTiming::new(),
         }
     }
 
@@ -155,6 +195,11 @@ impl Mob {
 
     pub fn set_last_moved_at(&mut self, tick: u128) {
         self.last_moved_at = tick;
+    }
+
+    /// Check if mob can move at the given tick (atomic check for movement thread)
+    pub fn can_move(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canmove_tick()
     }
 
     pub fn position(&self) -> Position {

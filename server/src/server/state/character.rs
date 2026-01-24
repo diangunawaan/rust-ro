@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use accessor::Setters;
@@ -16,6 +17,48 @@ use crate::server::model::map_instance::MapInstanceKey;
 use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType, ToMapItem, ToMapItemSnapshot};
 use crate::server::model::movement::{Movable, Movement};
 use crate::server::script::ScriptGlobalVariableStore;
+
+pub struct CharacterTiming {
+    /// Tick when character can move again
+    pub canmove_tick: AtomicU64,
+    /// Tick when character can act again (attack/skill)
+    pub canact_tick: AtomicU64,
+}
+
+impl CharacterTiming {
+    pub fn new() -> Self {
+        Self {
+            canmove_tick: AtomicU64::new(0),
+            canact_tick: AtomicU64::new(0),
+        }
+    }
+
+    /// Set canmove_tick (called by game loop)
+    pub fn set_canmove_tick(&self, tick: u128) {
+        self.canmove_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canmove_tick (called by movement thread)
+    pub fn get_canmove_tick(&self) -> u128 {
+        self.canmove_tick.load(Ordering::Acquire) as u128
+    }
+
+    /// Set canact_tick (called by game loop)
+    pub fn set_canact_tick(&self, tick: u128) {
+        self.canact_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canact_tick
+    pub fn get_canact_tick(&self) -> u128 {
+        self.canact_tick.load(Ordering::Acquire) as u128
+    }
+}
+
+impl Default for CharacterTiming {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Character state
 #[derive(Setters)]
@@ -74,6 +117,7 @@ pub struct Character {
     pub hotkeys: Vec<Hotkey>,
     // 1 male, 0 female
     pub sex: u8,
+    pub timing: CharacterTiming,
 }
 
 type InventoryIter<'a> = Box<dyn Iterator<Item = (usize, &'a InventoryItemModel)> + 'a>;
@@ -127,6 +171,7 @@ impl Character {
             sit: false,
             hotkeys,
             sex,
+            timing: CharacterTiming::new(),
         }
     }
 
@@ -183,6 +228,21 @@ impl Character {
 
     pub fn clear_attack(&mut self) {
         self.attack = None;
+    }
+
+    /// Check if character can move at the given tick (atomic check for movement thread)
+    pub fn can_move(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canmove_tick()
+    }
+
+    /// Check if character can act (attack/skill) at the given tick
+    pub fn can_act(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canact_tick()
+    }
+
+    /// Get the tick when character can move again
+    pub fn get_canmove_tick(&self) -> u128 {
+        self.timing.get_canmove_tick()
     }
 
     pub fn update_skill_used_at_tick(&mut self, tick: u128) {
