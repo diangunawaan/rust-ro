@@ -97,6 +97,7 @@ impl MapInstanceLoop {
                                     let map_instance_state = map_instance.state_mut().as_mut();
                                     map_instance_state.set_mob_movement_paused(!map_instance_state.mob_movement_paused());
                                 }
+                                MapEvent::MobAttackCharacter(_) => {}
                             }
                         }
                     }

@@ -335,9 +335,10 @@ impl Mob {
     }
 
     /// Transition to Chasing from Idle or Moving
+    /// Transition to Chasing from Idle, Moving, or Attacking (when target moves away)
     pub fn transition_to_chasing(&mut self, target_id: u32) -> bool {
         match self.action {
-            MobAction::Idle | MobAction::Moving => {
+            MobAction::Idle | MobAction::Moving | MobAction::Attacking { .. } => {
                 self.action = MobAction::Chasing { target_id };
                 self.movements.clear();
                 true
