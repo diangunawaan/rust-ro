@@ -22,8 +22,6 @@ pub enum MobAction {
     Flinching { until: u128 },
     /// Mob is returning to spawn area
     Returning,
-    /// Mob is dead, waiting for respawn
-    Dead { respawn_at: u128 },
 }
 
 impl Default for MobAction {
@@ -235,37 +233,28 @@ impl Mob {
         matches!(self.action, MobAction::Flinching { .. })
     }
 
-    pub fn is_dead(&self) -> bool {
-        matches!(self.action, MobAction::Dead { .. })
-    }
-
     pub fn is_idle(&self) -> bool {
         matches!(self.action, MobAction::Idle)
     }
 
-    /// Check if mob can start a new action (not flinching or dead)
+    /// Check if mob can start a new action (not flinching)
     pub fn can_act(&self) -> bool {
-        !self.is_flinching() && !self.is_dead()
+        !self.is_flinching()
     }
 
     // --- State machine transitions ---
 
-    /// Flinching can happen from any state except Dead - always interrupts
-    pub fn transition_to_flinching(&mut self, tick: u128) -> bool {
-        if self.is_dead() {
-            return false;
-        }
+    /// Flinching interrupts any action
+    pub fn transition_to_flinching(&mut self, tick: u128) {
         let until = tick + self.damage_motion as u128;
         self.action = MobAction::Flinching { until };
         self.timing.set_canmove_tick(until);
-        // Clear movement queue when flinching
         self.movements.clear();
-        true
     }
 
-    /// Can transition to Moving from: Idle only (not while Flinching, Dead, already Moving)
+    /// Can transition to Moving from: Idle only
     pub fn transition_to_moving(&mut self) -> bool {
-        if self.can_act() && matches!(self.action, MobAction::Idle) {
+        if matches!(self.action, MobAction::Idle) {
             self.action = MobAction::Moving;
             true
         } else {
@@ -282,13 +271,6 @@ impl Mob {
             }
             _ => false,
         }
-    }
-
-    /// Dead overrides any state - always succeeds
-    pub fn transition_to_dead(&mut self, respawn_at: u128) -> bool {
-        self.action = MobAction::Dead { respawn_at };
-        self.movements.clear();
-        true
     }
 
     /// Update flinch state - call each tick to check if flinch is done
