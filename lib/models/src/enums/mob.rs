@@ -1,6 +1,6 @@
-use enum_macro::{WithNumberValue, WithStringValue};
+use enum_macro::{WithMaskValueU32, WithNumberValue, WithStringValue};
 
-use crate::enums::{EnumWithNumberValue, EnumWithStringValue};
+use crate::enums::{EnumWithMaskValueU32, EnumWithNumberValue, EnumWithStringValue};
 
 #[derive(WithStringValue, WithNumberValue, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MobClass {
@@ -107,4 +107,98 @@ pub enum MobGroup {
     Malangdo,
     #[value_string = "RC2_Rachel_Sanctuary"]
     RachelSanctuary,
+}
+
+/// Monster behavior mode flags
+/// See docs/monster-ai.md for detailed documentation
+#[derive(WithMaskValueU32, Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MobMode {
+    #[mask_value = 1]
+    CanMove,
+    Looter,
+    Aggressive,
+    Assist,
+    CastSensorIdle,
+    NoRandomWalk,
+    NoCast,
+    CanAttack,
+    #[mask_value = 512]
+    CastSensorChase,
+    ChangeChase,
+    Angry,
+    ChangeTargetMelee,
+    ChangeTargetChase,
+    TargetWeak,
+    RandomTarget,
+    #[mask_value = 65536]
+    IgnoreMelee,
+    IgnoreMagic,
+    IgnoreRanged,
+    Mvp,
+    IgnoreMisc,
+    KnockBackImmune,
+    TeleportBlock,
+    #[mask_value = 16777216]
+    FixedItemDrop,
+    Detector,
+    StatusImmune,
+    SkillImmune,
+}
+
+impl MobMode {
+    pub fn is_aggressive(mode: u32) -> bool {
+        mode & MobMode::Aggressive.as_flag() != 0
+    }
+
+    pub fn is_assist(mode: u32) -> bool {
+        mode & MobMode::Assist.as_flag() != 0
+    }
+
+    pub fn can_move(mode: u32) -> bool {
+        mode & MobMode::CanMove.as_flag() != 0
+    }
+
+    pub fn can_attack(mode: u32) -> bool {
+        mode & MobMode::CanAttack.as_flag() != 0
+    }
+
+    pub fn is_looter(mode: u32) -> bool {
+        mode & MobMode::Looter.as_flag() != 0
+    }
+
+    pub fn has_cast_sensor_idle(mode: u32) -> bool {
+        mode & MobMode::CastSensorIdle.as_flag() != 0
+    }
+
+    pub fn has_cast_sensor_chase(mode: u32) -> bool {
+        mode & MobMode::CastSensorChase.as_flag() != 0
+    }
+
+    pub fn can_change_target_melee(mode: u32) -> bool {
+        mode & MobMode::ChangeTargetMelee.as_flag() != 0
+    }
+
+    pub fn can_change_target_chase(mode: u32) -> bool {
+        mode & MobMode::ChangeTargetChase.as_flag() != 0
+    }
+
+    pub fn is_angry(mode: u32) -> bool {
+        mode & MobMode::Angry.as_flag() != 0
+    }
+
+    pub fn targets_weak(mode: u32) -> bool {
+        mode & MobMode::TargetWeak.as_flag() != 0
+    }
+
+    pub fn has_random_target(mode: u32) -> bool {
+        mode & MobMode::RandomTarget.as_flag() != 0
+    }
+
+    pub fn is_detector(mode: u32) -> bool {
+        mode & MobMode::Detector.as_flag() != 0
+    }
+
+    pub fn is_mvp(mode: u32) -> bool {
+        mode & MobMode::Mvp.as_flag() != 0
+    }
 }

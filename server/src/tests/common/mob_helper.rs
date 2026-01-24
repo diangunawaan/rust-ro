@@ -14,6 +14,13 @@ pub fn create_mob(map_item_id: u32, mob_name: &str) -> Mob {
         mob.name_english.clone(),
         mob.damage_motion as u32,
         StatusFromDb::from_mob_model(mob),
+        mob.mode as u32,
+        mob.range1 as u16,
+        mob.range3 as u16,
+        mob.atk_delay as u32,
+        mob.atk_motion as u32,
+        mob.atk1 as u16,
+        mob.atk2 as u16,
     )
 }
 pub fn create_mob_by_id(map_item_id: u32, mob_id: u32) -> Mob {
@@ -28,5 +35,12 @@ pub fn create_mob_by_id(map_item_id: u32, mob_id: u32) -> Mob {
         mob.name_english.clone(),
         mob.damage_motion as u32,
         StatusFromDb::from_mob_model(mob),
+        mob.mode as u32,
+        mob.range1 as u16,
+        mob.range3 as u16,
+        mob.atk_delay as u32,
+        mob.atk_motion as u32,
+        mob.atk1 as u16,
+        mob.atk2 as u16,
     )
 }

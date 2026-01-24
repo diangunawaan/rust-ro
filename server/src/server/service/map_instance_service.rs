@@ -78,6 +78,13 @@ impl MapInstanceService {
                     mob_spawn.info.name_english.clone(),
                     mob_spawn.info.damage_motion as u32,
                     StatusFromDb::from_mob_model(&mob_spawn.info),
+                    mob_spawn.info.mode as u32,
+                    mob_spawn.info.range1 as u16,
+                    mob_spawn.info.range3 as u16,
+                    mob_spawn.info.atk_delay as u32,
+                    mob_spawn.info.atk_motion as u32,
+                    mob_spawn.info.atk1 as u16,
+                    mob_spawn.info.atk2 as u16,
                 );
 
                 debug!("Spawning mob {}", mob_map_item_id);

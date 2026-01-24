@@ -33,12 +33,15 @@ impl Default for MobAction {
 pub struct MobTiming {
     /// Tick when mob can move again (after flinch/damage)
     pub canmove_tick: AtomicU64,
+    /// Tick when mob can attack again (after attack animation)
+    pub canattack_tick: AtomicU64,
 }
 
 impl MobTiming {
     pub fn new() -> Self {
         Self {
             canmove_tick: AtomicU64::new(0),
+            canattack_tick: AtomicU64::new(0),
         }
     }
 
@@ -50,6 +53,16 @@ impl MobTiming {
     /// Get canmove_tick (called by mob movement thread)
     pub fn get_canmove_tick(&self) -> u128 {
         self.canmove_tick.load(Ordering::Acquire) as u128
+    }
+
+    /// Set canattack_tick (called after mob attacks)
+    pub fn set_canattack_tick(&self, tick: u128) {
+        self.canattack_tick.store(tick as u64, Ordering::Release);
+    }
+
+    /// Get canattack_tick (called by AI to check attack cooldown)
+    pub fn get_canattack_tick(&self) -> u128 {
+        self.canattack_tick.load(Ordering::Acquire) as u128
     }
 }
 
@@ -63,6 +76,7 @@ impl Clone for MobTiming {
     fn clone(&self) -> Self {
         Self {
             canmove_tick: AtomicU64::new(self.canmove_tick.load(Ordering::Relaxed)),
+            canattack_tick: AtomicU64::new(self.canattack_tick.load(Ordering::Relaxed)),
         }
     }
 }
@@ -89,6 +103,22 @@ pub struct Mob {
     pub damage_motion: u32,
     pub timing: MobTiming,
     pub action: MobAction,
+    /// AI behavior mode flags (see MobMode enum)
+    pub mode: u32,
+    /// Attack range (range1 from database)
+    pub attack_range: u16,
+    /// Chase range (range3 from database)
+    pub chase_range: u16,
+    /// Attack delay in ms (time between attacks)
+    pub atk_delay: u32,
+    /// Attack motion duration in ms
+    pub atk_motion: u32,
+    /// Minimum attack damage
+    pub atk1: u16,
+    /// Maximum attack damage
+    pub atk2: u16,
+    /// Current target for passive mobs (set when attacked)
+    pub target_id: Option<u32>,
 }
 
 pub struct MobMovement {
@@ -122,6 +152,13 @@ impl Mob {
         name_english: String,
         damage_motion: u32,
         status: StatusSnapshot,
+        mode: u32,
+        attack_range: u16,
+        chase_range: u16,
+        atk_delay: u32,
+        atk_motion: u32,
+        atk1: u16,
+        atk2: u16,
     ) -> Mob {
         Mob {
             id,
@@ -142,6 +179,14 @@ impl Mob {
             damage_motion,
             timing: MobTiming::new(),
             action: MobAction::Idle,
+            mode,
+            attack_range,
+            chase_range,
+            atk_delay,
+            atk_motion,
+            atk1,
+            atk2,
+            target_id: None,
         }
     }
 
@@ -287,6 +332,83 @@ impl Mob {
         if matches!(self.action, MobAction::Moving) && !self.is_moving() {
             self.action = MobAction::Idle;
         }
+    }
+
+    /// Transition to Chasing from Idle or Moving
+    pub fn transition_to_chasing(&mut self, target_id: u32) -> bool {
+        match self.action {
+            MobAction::Idle | MobAction::Moving => {
+                self.action = MobAction::Chasing { target_id };
+                self.movements.clear();
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Transition to Attacking from Idle or Chasing
+    pub fn transition_to_attacking(&mut self, target_id: u32, tick: u128) -> bool {
+        match self.action {
+            MobAction::Idle | MobAction::Chasing { .. } => {
+                self.action = MobAction::Attacking {
+                    target_id,
+                    last_attack_at: tick,
+                };
+                self.movements.clear();
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Check if mob can attack at the given tick
+    pub fn can_attack_at(&self, tick: u128) -> bool {
+        tick >= self.timing.get_canattack_tick()
+    }
+
+    /// Update last attack time
+    pub fn update_last_attack(&mut self, tick: u128) {
+        if let MobAction::Attacking { last_attack_at, .. } = &mut self.action {
+            *last_attack_at = tick;
+        }
+    }
+
+    /// Get current target from Chasing/Attacking state or stored target_id
+    pub fn get_target_id(&self) -> Option<u32> {
+        match &self.action {
+            MobAction::Chasing { target_id } => Some(*target_id),
+            MobAction::Attacking { target_id, .. } => Some(*target_id),
+            _ => self.target_id,
+        }
+    }
+
+    /// Lose target - return to Idle
+    pub fn lose_target(&mut self) {
+        self.target_id = None;
+        match self.action {
+            MobAction::Chasing { .. } | MobAction::Attacking { .. } => {
+                self.action = MobAction::Idle;
+            }
+            _ => {}
+        }
+    }
+
+    /// Transition to flinching and store attacker as target for passive mobs
+    pub fn transition_to_flinching_with_attacker(&mut self, attacker_id: u32, tick: u128) {
+        if self.target_id.is_none() {
+            self.target_id = Some(attacker_id);
+        }
+        self.transition_to_flinching(tick);
+    }
+
+    /// Check if mob is currently chasing
+    pub fn is_chasing(&self) -> bool {
+        matches!(self.action, MobAction::Chasing { .. })
+    }
+
+    /// Check if mob is currently attacking
+    pub fn is_attacking(&self) -> bool {
+        matches!(self.action, MobAction::Attacking { .. })
     }
 
     pub fn position(&self) -> Position {
