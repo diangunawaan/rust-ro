@@ -1528,8 +1528,30 @@ impl CharacterService {
     }
 
     pub fn cancel_movement(&self, character: &mut Character, tick: u128) {
-        let mut packet_zc_stop_move = PacketZcStopmove::new(GlobalConfigService::instance().packetver());
+        // Calculate position based on movement progress to avoid visual teleport
+        // Client interpolates position smoothly, so if we're > 50% to next cell,
+        // snap forward instead of backward
+        if let Some(movement) = character.peek_movement() {
+            let move_at = movement.move_at();
+            let last_moved_at = character.last_moved_at;
+            let next_pos = *movement.position();
+
+            // Calculate progress through current movement (0.0 to 1.0)
+            if move_at > last_moved_at {
+                let total_duration = move_at - last_moved_at;
+                let elapsed = tick.saturating_sub(last_moved_at);
+                let progress = elapsed as f64 / total_duration as f64;
+
+                // If more than 50% through movement, snap to next cell
+                if progress > 0.5 {
+                    character.update_position(next_pos.x, next_pos.y);
+                }
+            }
+        }
+
         character.clear_movement();
+
+        let mut packet_zc_stop_move = PacketZcStopmove::new(GlobalConfigService::instance().packetver());
         packet_zc_stop_move.set_x_pos(character.x as i16);
         packet_zc_stop_move.set_y_pos(character.y as i16);
         packet_zc_stop_move.set_aid(character.char_id);
