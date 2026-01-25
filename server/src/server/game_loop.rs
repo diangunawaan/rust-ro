@@ -302,8 +302,17 @@ impl Server {
                             .server_service
                             .character_start_use_skill(server_ref.state(), character, character_use_skill, tick);
                     }
-                    GameEvent::CharacterDamage(_damage) => {
-                        println!("GameEvent::CharacterDamage: Not implemented yet!")
+                    GameEvent::CharacterDamage(damage) => {
+                        if let Some(character) = server_state_mut.characters_mut().get_mut(&damage.target_id) {
+                            if character.is_moving() {
+                                server_ref.character_service().cancel_movement(character, tick);
+                            }
+                            character.timing.set_canmove_tick(tick + damage.damage_motion as u128);
+                            let died = server_ref.character_service().take_damage(character, damage.damage);
+                            if died {
+                                // TODO: Handle character death - respawn logic, etc.
+                            }
+                        }
                     }
                     GameEvent::CharacterUpdateSpeed(char_id, speed) => {
                         let character = server_state_mut.characters_mut().get_mut(&char_id).unwrap();
@@ -375,10 +384,16 @@ impl Server {
         }
         for (_, map) in server_ref.state().map_instances().iter() {
             for instance in map.iter() {
+                let map_name = instance.key().map_name();
+                let instance_id = instance.key().map_instance();
                 instance.add_to_next_tick(MapEvent::UpdateMobsFov(
                     server_state_mut
                         .characters_mut()
                         .iter()
+                        .filter(|(_, character)| {
+                            character.current_map_name() == map_name
+                                && character.current_map_instance() == instance_id
+                        })
                         .map(|(_, character)| character.to_map_item_snapshot())
                         .collect(),
                 ));

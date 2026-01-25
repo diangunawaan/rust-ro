@@ -1,7 +1,6 @@
 use std::sync::mpsc::SyncSender;
 
 use models::enums::mob::MobMode;
-use models::enums::EnumWithMaskValueU32;
 use models::position::Position;
 
 use crate::server::model::events::client_notification::Notification;
@@ -142,10 +141,16 @@ impl MobService {
         }
 
         // Aggressive behavior - find nearest player
-        if MobMode::is_aggressive(mob.mode) && MobMode::can_attack(mob.mode) {
+        let is_aggressive = MobMode::is_aggressive(mob.mode);
+        let can_attack = MobMode::can_attack(mob.mode);
+        if is_aggressive && can_attack {
             if let Some(target) = self.find_nearest_target(mob, characters) {
                 let target_id = target.map_item.id();
                 let distance = manhattan_distance(mob.x, mob.y, target.position.x, target.position.y);
+                // debug!(
+                //     "Aggressive mob {} (mode={}) found target {} at distance {}, attack_range={}, chase_range={}",
+                //     mob.name, mob.mode, target_id, distance, mob.attack_range, mob.chase_range
+                // );
                 if distance <= mob.attack_range {
                     mob.transition_to_attacking(target_id, tick);
                     return self.execute_attack(mob, target_id, target.position.x, target.position.y, tick);

@@ -369,13 +369,15 @@ impl BattleService {
         packet_zc_notify_act3.set_action(ActionType::Attack.value() as u8);
         packet_zc_notify_act3.set_gid(character.char_id);
         packet_zc_notify_act3.set_attack_mt(attack_motion as i32 / 2);
-        packet_zc_notify_act3.set_attacked_mt(attack_motion as i32 / 2);
-        let damage = if matches!(target.map_item.object_type(), MapItemType::Mob) {
+        let (damage, target_damage_motion) = if matches!(target.map_item.object_type(), MapItemType::Mob) {
             let mob = self.configuration_service.get_mob(target.map_item.client_item_class() as i32);
             packet_zc_notify_act3.set_attacked_mt(mob.damage_motion);
-            self.calculate_damage(source_status, target_status, None)
+            (self.calculate_damage(source_status, target_status, None), mob.damage_motion as u32)
         } else {
-            0
+            // Player default damage motion
+            const PLAYER_DAMAGE_MOTION: u32 = 480;
+            packet_zc_notify_act3.set_attacked_mt(PLAYER_DAMAGE_MOTION as i32);
+            (0, PLAYER_DAMAGE_MOTION)
         };
         packet_zc_notify_act3.set_damage(damage as i16);
         packet_zc_notify_act3.set_count(1);
@@ -398,6 +400,7 @@ impl BattleService {
                 attacker_id: character.char_id,
                 damage: damage as u16 as u32,
                 attacked_at: tick + attack_motion as u128,
+                damage_motion: target_damage_motion,
             })
         } else {
             // TODO handle heal if damage < 0
