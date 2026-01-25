@@ -92,6 +92,8 @@ pub enum ClientEffectIcon {
     Splasher,
     #[value = 45]
     Anklesnare,
+    #[value = 46]
+    PostDelay,
     #[value = 49]
     Barrier,
     #[value = 50]

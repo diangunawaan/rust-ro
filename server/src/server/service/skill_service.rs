@@ -1,12 +1,13 @@
 use std::mem;
 use std::sync::mpsc::SyncSender;
 
-use models::enums::EnumWithNumberValue;
+use models::enums::client_effect_icon::ClientEffectIcon;
 use models::enums::skill::{SkillType, UseSkillFailure, UseSkillFailureClientSideType};
 use models::enums::skill_enums::SkillEnum;
+use models::enums::EnumWithNumberValue;
 use models::item::NormalInventoryItem;
 use models::status::StatusSnapshot;
-use packets::packets::{PacketZcAckTouseskill, PacketZcActionFailure, PacketZcNotifySkill2, PacketZcUseSkill, PacketZcUseskillAck2};
+use packets::packets::{PacketZcAckTouseskill, PacketZcActionFailure, PacketZcMsgStateChange2, PacketZcNotifySkill2, PacketZcUseSkill, PacketZcUseskillAck2};
 use skills::OffensiveSkill;
 
 use crate::packets::packets::Packet;
@@ -193,7 +194,7 @@ impl SkillService {
                 packet_zc_notify_skill2.set_damage(damage);
                 packet_zc_notify_skill2.set_start_time(0);
 
-                attack_motion = self.status_service.attack_delay(source_status) as i32;
+                attack_motion = self.status_service.attack_motion(source_status) as i32;
                 packet_zc_notify_skill2.set_attack_mt(attack_motion);
                 if matches!(target.map_item.object_type(), MapItemType::Mob) {
                     let mob = self.configuration_service.get_mob(target.map_item.client_item_class() as i32);
@@ -242,6 +243,22 @@ impl SkillService {
                     packets,
                 )))
                 .unwrap_or_else(|_| error!("Failed to send notification packet_zc_use_skill to client"));
+        }
+
+        let after_cast_delay = character.skill_in_use().skill.after_cast_act_delay();
+        if after_cast_delay > 0 {
+            let mut packet_zc_msg_state_change = PacketZcMsgStateChange2::new(self.configuration_service.packetver());
+            packet_zc_msg_state_change.set_aid(character.char_id);
+            packet_zc_msg_state_change.set_index(ClientEffectIcon::PostDelay as i16);
+            packet_zc_msg_state_change.set_remain_ms(after_cast_delay);
+            packet_zc_msg_state_change.set_state(true);
+            packet_zc_msg_state_change.fill_raw();
+            self.client_notification_sender
+                .send(Notification::Char(CharNotification::new(
+                    character.char_id,
+                    mem::take(packet_zc_msg_state_change.raw_mut()),
+                )))
+                .unwrap_or_else(|_| error!("Failed to send EFST_POSTDELAY to client"));
         }
 
         Some(SkillUsed {
