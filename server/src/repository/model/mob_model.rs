@@ -1,6 +1,6 @@
-use models::enums::EnumWithStringValue;
+use models::enums::{EnumWithMaskValueU32, EnumWithStringValue};
 use models::enums::element::Element;
-use models::enums::mob::MobRace;
+use models::enums::mob::{MobMode, MobRace};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
 use sqlx::{Error, FromRow, Row};
@@ -136,7 +136,13 @@ impl<'r> FromRow<'r, PgRow> for MobModel {
         model.set_race(row.get("race"));
         model.set_element(row.get("element"));
         model.set_element_level(row.try_get::<i16, _>("element_level").unwrap_or(0) as i8);
-        // model.set_mode(row.get::<i32,_>("element_level")); TODO: collect all modes
+        let ai_type = row
+            .try_get::<String, _>("ai")
+            .ok()
+            .and_then(|s| s.parse::<i32>().ok())
+            .unwrap_or(1);
+        let mode = MobMode::from_ai_type(ai_type);
+        model.set_mode(mode as i16);
         model.set_speed(row.try_get::<i32, _>("walk_speed").unwrap_or(0));
         model.set_atk_delay(row.try_get::<i32, _>("attack_delay").unwrap_or(0));
         model.set_atk_motion(row.try_get::<i32, _>("attack_motion").unwrap_or(0));

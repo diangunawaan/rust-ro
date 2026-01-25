@@ -12,6 +12,7 @@ pub enum MapEvent {
     MobDamage(Damage),
     MobDeathClientNotification(MobLocation),
     MobDropItems(MobDropItems),
+    MobAttackCharacter(MobAttackCharacter),
     AdminKillAllMobs(u32),
     AdminTogglePauseMobMovement,
     CharDropItems(CharacterDropItems),
@@ -38,4 +39,14 @@ pub struct CharacterDropItems {
     pub char_x: u16,
     pub char_y: u16,
     pub item_removal_info: Vec<(InventoryItemModel, CharacterRemoveItem)>,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct MobAttackCharacter {
+    pub mob_id: u32,
+    pub target_char_id: u32,
+    pub damage: u32,
+    pub attack_motion: u32,
+    pub mob_x: u16,
+    pub mob_y: u16,
 }

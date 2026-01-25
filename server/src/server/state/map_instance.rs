@@ -5,7 +5,7 @@ use models::enums::cell::CellType;
 use models::item::DroppedItem;
 
 use crate::server::model::map_instance::MapInstanceKey;
-use crate::server::model::map_item::{MapItem, MapItems, ToMapItem};
+use crate::server::model::map_item::{MapItem, MapItems, MapItemSnapshot, ToMapItem};
 use crate::server::state::mob::Mob;
 use crate::util::coordinate;
 use crate::util::hasher::NoopHasherU32;
@@ -21,6 +21,8 @@ pub struct MapInstanceState {
     map_items: MapItems,
     dropped_items: hashbrown::HashMap<u32, DroppedItem, NoopHasherU32>,
     mob_spawns_tracks: HashMap<u32, MobSpawnTrack>,
+    /// Character snapshots for mob AI targeting (updated via UpdateMobsFov)
+    characters: Vec<MapItemSnapshot>,
 
     mob_movement_paused: bool,
 }
@@ -67,6 +69,7 @@ impl MapInstanceState {
             map_items,
             dropped_items: Default::default(),
             mob_spawns_tracks,
+            characters: Vec::new(),
             mob_movement_paused: false,
         }
     }
@@ -195,5 +198,13 @@ impl MapInstanceState {
 
     pub fn mob_movement_paused(&self) -> bool {
         self.mob_movement_paused
+    }
+
+    pub fn characters(&self) -> &[MapItemSnapshot] {
+        &self.characters
+    }
+
+    pub fn update_characters(&mut self, characters: Vec<MapItemSnapshot>) {
+        self.characters = characters;
     }
 }

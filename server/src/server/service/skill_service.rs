@@ -179,6 +179,7 @@ impl SkillService {
         let mut packets: Vec<u8> = vec![];
         let mut attack_motion: i32 = 0;
         let mut target_id = character.char_id;
+        let mut target_damage_motion: u32 = 0;
         let mut bonuses = Default::default();
         match skill.skill_type() {
             SkillType::Offensive => {
@@ -194,10 +195,14 @@ impl SkillService {
 
                 attack_motion = self.status_service.attack_delay(source_status) as i32;
                 packet_zc_notify_skill2.set_attack_mt(attack_motion);
-                packet_zc_notify_skill2.set_attacked_mt(attack_motion);
                 if matches!(target.map_item.object_type(), MapItemType::Mob) {
                     let mob = self.configuration_service.get_mob(target.map_item.client_item_class() as i32);
+                    target_damage_motion = mob.damage_motion as u32;
                     packet_zc_notify_skill2.set_attacked_mt(mob.damage_motion);
+                } else {
+                    const PLAYER_DAMAGE_MOTION: u32 = 480;
+                    target_damage_motion = PLAYER_DAMAGE_MOTION;
+                    packet_zc_notify_skill2.set_attacked_mt(PLAYER_DAMAGE_MOTION as i32);
                 }
                 packet_zc_notify_skill2.set_level(skill.level() as i16);
 
@@ -248,6 +253,7 @@ impl SkillService {
             effects: vec![],
             bonuses,
             attacked_at: tick + attack_motion as u128,
+            damage_motion: target_damage_motion,
         })
     }
 

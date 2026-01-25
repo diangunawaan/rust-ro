@@ -38,7 +38,7 @@ impl MapInstanceLoop {
                             >= (GlobalConfigService::instance().config().game.mob_action_refresh_frequency * 1000.0) as u128
                     {
                         let map_instance_state = map_instance.state_mut().as_mut();
-                        map_instance_service_clone.mobs_action(map_instance_state, tick);
+                        map_instance_service_clone.mobs_action(map_instance_state, map_instance.task_queue(), tick);
                         last_mobs_action = now;
                     }
                     if last_mobs_spawn.elapsed().as_millis()
@@ -96,6 +96,10 @@ impl MapInstanceLoop {
                                 MapEvent::AdminTogglePauseMobMovement => {
                                     let map_instance_state = map_instance.state_mut().as_mut();
                                     map_instance_state.set_mob_movement_paused(!map_instance_state.mob_movement_paused());
+                                }
+                                MapEvent::MobAttackCharacter(attack) => {
+                                    let map_instance_state = map_instance.state();
+                                    map_instance_service_clone.mob_attack_character(map_instance_state.as_ref(), attack, tick);
                                 }
                             }
                         }

@@ -1,18 +1,18 @@
 use std::collections::HashSet;
 use std::io;
 use std::io::Write;
-use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
+use std::sync::Arc;
 
 use futures::task::Spawn;
-use models::enums::EnumWithNumberValue;
 use models::enums::action::ActionType;
-use models::enums::class::{JOB_BASE_MASK, JobName};
+use models::enums::class::{JobName, JOB_BASE_MASK};
 use models::enums::client_effect_icon::ClientEffectIcon;
 use models::enums::effect::Effect;
 use models::enums::look::LookType;
 use models::enums::skill_enums::SkillEnum;
 use models::enums::status::StatusTypes;
+use models::enums::EnumWithNumberValue;
 use models::position::Position;
 use models::status::{KnownSkill, Status, StatusSnapshot};
 use packets::packets::{
@@ -23,9 +23,8 @@ use packets::packets::{
 };
 use tokio::runtime::Runtime;
 
-use crate::repository::CharacterRepository;
 use crate::repository::model::item_model::InventoryItemModel;
-use crate::server::PLAYER_FOV;
+use crate::repository::CharacterRepository;
 use crate::server::model::events::client_notification::{AreaNotification, AreaNotificationRangeType, CharNotification, Notification};
 use crate::server::model::events::game_event::{CharacterKillMonster, CharacterLook, CharacterUpdateStat, CharacterZeny, GameEvent};
 use crate::server::model::events::map_event::{MapEvent, MobDropItems};
@@ -45,6 +44,7 @@ use crate::server::service::status_service::StatusService;
 use crate::server::state::character::Character;
 use crate::server::state::map_instance::MapInstanceState;
 use crate::server::state::server::ServerState;
+use crate::server::PLAYER_FOV;
 use crate::util::packet::chain_packets;
 use crate::util::string::StringUtil;
 use crate::util::tick::{get_tick, get_tick_client};
@@ -272,6 +272,28 @@ impl CharacterService {
                 chain_packets(vec![&packet_status_hp_change, &packet_status_sp_change]),
             )))
             .unwrap_or_else(|_| error!("Failed to send notification packet_status_change(status update) to client"));
+    }
+
+    /// Apply damage to character and send HP update. Returns true if character died.
+    /// TODO damage should be an enum we should now attack kind (physical, magic, range, etc) and element
+    pub fn take_damage(&self, character: &mut Character, damage: u32) -> bool {
+        let current_hp = character.status.hp();
+        // TODO this is very simplistic, we should use status snapshot to calculate actual damage
+        let new_hp = if damage >= current_hp { 0 } else { current_hp - damage };
+        character.status.set_hp(new_hp);
+
+        let mut packet_hp_change = PacketZcParChange::new(self.configuration_service.packetver());
+        packet_hp_change.set_var_id(StatusTypes::Hp.value() as u16);
+        packet_hp_change.set_count(new_hp as i32);
+        packet_hp_change.fill_raw();
+        self.client_notification_sender
+            .send(Notification::Char(CharNotification::new(
+                character.char_id,
+                chain_packets(vec![&packet_hp_change]),
+            )))
+            .unwrap_or_else(|_| error!("Failed to send notification packet_status_change(damage) to client"));
+
+        new_hp == 0
     }
 
     pub fn sit(&self, character: &mut Character) {

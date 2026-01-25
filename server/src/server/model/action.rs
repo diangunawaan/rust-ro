@@ -17,6 +17,8 @@ pub struct Damage {
     pub attacker_id: u32,
     pub damage: u32,
     pub attacked_at: u128,
+    /// Duration in ms the target cannot move after being hit (flinch/hit stun)
+    pub damage_motion: u32,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -81,6 +83,8 @@ pub struct SkillUsed {
     pub bonuses: TemporaryStatusBonuses,
     // For offensive skills
     pub attacked_at: u128,
+    /// Duration in ms the target cannot move after being hit
+    pub damage_motion: u32,
 }
 
 impl SkillUsed {
@@ -90,6 +94,7 @@ impl SkillUsed {
             attacker_id: self.source_id,
             damage: self.damage_to_target as u32,
             attacked_at: self.attacked_at,
+            damage_motion: self.damage_motion,
         }
     }
 }

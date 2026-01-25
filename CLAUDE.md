@@ -135,3 +135,12 @@ pub enum MyFlags {
 ```
 
 Traits provided: `from_flag(value)`, `try_from_flag(value)`, `as_flag()`
+
+**Important**: Never use hex values directly for flags. Always use enum variants with `.as_flag()` and bitwise OR:
+```rust
+// Good
+let mode = MobMode::CanMove.as_flag() | MobMode::CanAttack.as_flag();
+
+// Bad - never do this
+let mode = 0x81;
+```

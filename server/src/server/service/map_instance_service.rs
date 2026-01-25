@@ -2,24 +2,25 @@ use std::ops::Deref;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
+use models::enums::action::ActionType;
 use models::enums::vanish::VanishType;
 use models::enums::EnumWithNumberValue;
 use models::item::DroppedItem;
 use models::position::Position;
-use packets::packets::{Packet, PacketZcItemDisappear, PacketZcItemFallEntry, PacketZcNotifyMove, PacketZcNotifyVanish};
+use packets::packets::{Packet, PacketZcItemDisappear, PacketZcItemFallEntry, PacketZcNotifyAct, PacketZcNotifyMove, PacketZcNotifyVanish};
 
 use crate::server::game_loop::GAME_TICK_RATE;
 use crate::server::map_instance_loop::MAP_LOOP_TICK_RATE;
 use crate::server::model::action::Damage;
 use crate::server::model::events::client_notification::{AreaNotification, AreaNotificationRangeType, Notification};
 use crate::server::model::events::game_event::{CharacterKillMonster, GameEvent};
-use crate::server::model::events::map_event::{CharacterDropItems, MapEvent, MobDropItems, MobLocation};
+use crate::server::model::events::map_event::{CharacterDropItems, MapEvent, MobAttackCharacter, MobDropItems, MobLocation};
 use crate::server::model::map::Map;
 use crate::server::model::map_item::MapItemSnapshot;
 use crate::server::model::status::StatusFromDb;
 use crate::server::model::tasks_queue::TasksQueue;
 use crate::server::service::global_config_service::GlobalConfigService;
-use crate::server::service::mob_service::MobService;
+use crate::server::service::mob_service::{MobAIAction, MobService};
 use crate::server::state::map_instance::MapInstanceState;
 use crate::server::state::mob::{Mob, MobMovement};
 use crate::util::tick::{delayed_tick, get_tick, get_tick_client};
@@ -78,6 +79,13 @@ impl MapInstanceService {
                     mob_spawn.info.name_english.clone(),
                     mob_spawn.info.damage_motion as u32,
                     StatusFromDb::from_mob_model(&mob_spawn.info),
+                    mob_spawn.info.mode as u32,
+                    mob_spawn.info.range1 as u16,
+                    mob_spawn.info.range3 as u16,
+                    mob_spawn.info.atk_delay as u32,
+                    mob_spawn.info.atk_motion as u32,
+                    mob_spawn.info.atk1 as u16,
+                    mob_spawn.info.atk2 as u16,
                 );
 
                 debug!("Spawning mob {}", mob_map_item_id);
@@ -89,28 +97,39 @@ impl MapInstanceService {
         }
     }
 
-    pub fn update_mobs_fov(&self, _map_instance_state: &mut MapInstanceState, _characters: Vec<MapItemSnapshot>) {
-        // for (_, mob) in map_instance_state.mobs_mut().iter_mut() {
-        //     let mut viewed_chars: Vec<MapItem> =
-        // Vec::with_capacity(characters.len());     for character in
-        // characters.iter() {         if
-        // manhattan_distance(character.x(), character.y(), mob.x(), mob.y()) <=
-        // MOB_FOV {             
-        // viewed_chars.push(character.map_item());         }
-        //     }
-        //     mob.update_map_view(viewed_chars);
-        // }
+    pub fn update_mobs_fov(&self, map_instance_state: &mut MapInstanceState, characters: Vec<MapItemSnapshot>) {
+        map_instance_state.update_characters(characters);
     }
 
-    pub fn mobs_action(&self, map_instance_state: &mut MapInstanceState, tick: u128) {
+    pub fn mobs_action(
+        &self,
+        map_instance_state: &mut MapInstanceState,
+        map_instance_task_queue: Arc<TasksQueue<MapEvent>>,
+        tick: u128,
+    ) {
         let start_time = get_tick_client();
         let mut mob_movements: Vec<MobMovement> = Vec::with_capacity(map_instance_state.mobs().len() / 2);
+        let mut mob_attacks: Vec<MobAttackCharacter> = Vec::new();
         let cells = map_instance_state.cells().clone();
+        let characters: Vec<MapItemSnapshot> = map_instance_state.characters().to_vec();
         let x_size = map_instance_state.x_size();
         let y_size = map_instance_state.y_size();
+
+        if !characters.is_empty() {
+            debug!(
+                "mobs_action: {} characters on map {}, {} mobs",
+                characters.len(),
+                map_instance_state.key().map_name(),
+                map_instance_state.mobs().len()
+            );
+        }
+
         for mob in map_instance_state.mobs_mut().values_mut() {
-            if let Some(mob_movement) = self.mob_service.action_move(mob, cells.as_ref(), x_size, y_size, tick) {
-                mob_movements.push(mob_movement);
+            if let Some(action) = self.mob_service.action_ai(mob, &characters, cells.as_ref(), x_size, y_size, tick) {
+                match action {
+                    MobAIAction::Move(movement) => mob_movements.push(movement),
+                    MobAIAction::Attack(attack) => mob_attacks.push(attack),
+                }
             }
         }
 
@@ -140,6 +159,48 @@ impl MapInstanceService {
                 )))
                 .unwrap_or_else(|_| error!("Failed to send notification packet_zc_notify_move to client"));
         }
+
+        for attack in mob_attacks {
+            map_instance_task_queue.add_to_first_index(MapEvent::MobAttackCharacter(attack));
+        }
+    }
+
+    pub fn mob_attack_character(&self, map_instance_state: &MapInstanceState, attack: MobAttackCharacter, tick: u128) {
+        let mut packet = PacketZcNotifyAct::new(self.configuration_service.packetver());
+        packet.set_gid(attack.mob_id);
+        packet.set_target_gid(attack.target_char_id);
+        packet.set_action(ActionType::Attack.value() as u8);
+        packet.set_attack_mt((attack.attack_motion / 2) as i32);
+        packet.set_attacked_mt((attack.attack_motion / 2) as i32);
+        packet.set_damage(attack.damage as i16);
+        packet.set_count(1);
+        packet.fill_raw();
+
+        self.client_notification_sender
+            .send(Notification::Area(AreaNotification::new(
+                map_instance_state.key().map_name().clone(),
+                map_instance_state.key().map_instance(),
+                AreaNotificationRangeType::Fov {
+                    x: attack.mob_x,
+                    y: attack.mob_y,
+                    exclude_id: None,
+                },
+                packet.raw,
+            )))
+            .unwrap_or_else(|_| error!("Failed to send mob attack notification"));
+
+        let damage_delay = attack.attack_motion as u128 / 2;
+        const PLAYER_DAMAGE_MOTION: u32 = 480;
+        self.server_task_queue.add_to_index(
+            GameEvent::CharacterDamage(Damage {
+                target_id: attack.target_char_id,
+                attacker_id: attack.mob_id,
+                damage: attack.damage,
+                attacked_at: tick + damage_delay,
+                damage_motion: PLAYER_DAMAGE_MOTION,
+            }),
+            delayed_tick(damage_delay, GAME_TICK_RATE),
+        );
     }
 
     pub fn mob_being_attacked(
@@ -156,8 +217,8 @@ impl MapInstanceService {
             }
             mob.add_attack(damage.attacker_id, damage.damage);
             mob.last_attacked_at = tick;
-            // Transition to flinching state - clears movement and sets canmove_tick
-            mob.transition_to_flinching(tick);
+            // Transition to flinching state and set attacker as target for retaliation
+            mob.transition_to_flinching_with_attacker(damage.attacker_id, tick);
             if mob.should_die() {
                 let delay = damage.attacked_at - tick;
                 let id = mob.id;
