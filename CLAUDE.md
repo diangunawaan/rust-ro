@@ -32,6 +32,8 @@ cargo test --features unit_tests
 
 This is a Ragnarok Online MMORPG server implementation written in Rust that combines the traditional Login/Char/Map server architecture into a single unified server. The architecture is built around message-passing and event-driven design patterns.
 
+This project focus exclusively on "pre-re" (or "pre renewal") version of the game.
+
 ### Key Architectural Principles
 - **Message Passing**: Uses message passing instead of shared memory with locks to avoid deadlocks and ensure thread safety
 - **Event-Driven**: State changes occur through queued events processed by dedicated loops
@@ -96,6 +98,8 @@ Never read files/directory belows because they are too big
 
 - `lib/packets`
 - `lib/skills`
+
+- when reading documentation never read for "re" (or "renewal") version of the game
 
 # How to 
 This section contains guidance for common implementation tasks
