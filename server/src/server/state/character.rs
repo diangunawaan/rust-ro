@@ -11,7 +11,7 @@ use models::status::Status;
 use skills::Skill;
 
 use crate::repository::model::item_model::{InventoryItemModel, ItemModel};
-use crate::server::model::action::{Attack, SkillInUse};
+use crate::server::model::action::{Attack, PendingSkill, SkillInUse};
 use crate::server::model::hotkey::Hotkey;
 use crate::server::model::map_instance::MapInstanceKey;
 use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType, ToMapItem, ToMapItemSnapshot};
@@ -119,6 +119,9 @@ pub struct Character {
     /// cooldown, after cast walk delay... So we need to keep track of the skill
     /// lifecycle.
     pub skill_in_use: Option<SkillInUse>,
+    /// When a character wants to use a skill but is out of range, store the
+    /// skill info here and walk toward target first.
+    pub pending_skill: Option<PendingSkill>,
     /// Character inventory is a list of item. Their index in the Vec below is
     /// sent to client, client side inventory items identifier is the index in
     /// this Vec. When action are made in inventory in client side, client
@@ -186,6 +189,7 @@ impl Character {
             movements: vec![],
             attack: None,
             skill_in_use: None,
+            pending_skill: None,
             inventory: vec![],
             map_view: Default::default(),
             script_variable_store: Default::default(),
@@ -273,6 +277,26 @@ impl Character {
         if matches!(self.action, CharacterAction::Attacking { .. }) {
             self.action = CharacterAction::Idle;
         }
+    }
+
+    pub fn set_pending_skill(&mut self, target_id: u32, skill_id: u32, skill_level: u8) {
+        self.pending_skill = Some(PendingSkill {
+            target_id,
+            skill_id,
+            skill_level,
+        });
+    }
+
+    pub fn clear_pending_skill(&mut self) {
+        self.pending_skill = None;
+    }
+
+    pub fn has_pending_skill(&self) -> bool {
+        self.pending_skill.is_some()
+    }
+
+    pub fn pending_skill(&self) -> &PendingSkill {
+        self.pending_skill.as_ref().unwrap()
     }
 
     /// Check if character can move at the given tick (atomic check for movement thread)

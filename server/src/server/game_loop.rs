@@ -307,6 +307,7 @@ impl Server {
                             if character.is_moving() {
                                 server_ref.character_service().cancel_movement(character, tick);
                             }
+                            character.clear_pending_skill();
                             character.timing.set_canmove_tick(tick + damage.damage_motion as u128);
                             let died = server_ref.character_service().take_damage(character, damage.damage);
                             if died {
@@ -378,6 +379,7 @@ impl Server {
                     .load_units_in_fov(server_ref.state(), character, map_instance.state().borrow().as_ref());
             }
             server_ref.server_service.character_attack(server_ref.state(), tick, character);
+            server_ref.server_service.character_pending_skill(server_ref.state(), tick, character);
             server_ref.server_service.character_use_skill(server_ref.state(), tick, character);
             server_ref.character_service().regen_hp(character, tick);
             server_ref.character_service().regen_sp(character, tick);
@@ -418,6 +420,7 @@ impl Server {
                         let character = server_state_mut.characters_mut().get_mut(&character_movement.char_id).unwrap();
                         if character_movement.cancel_attack {
                             character.clear_attack();
+                            character.clear_pending_skill();
                         }
                         let status_snapshot = server_ref.server_service.get_status_snapshot(&character.status, tick);
                         let speed = status_snapshot.speed();

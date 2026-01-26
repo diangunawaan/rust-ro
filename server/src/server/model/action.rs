@@ -11,6 +11,13 @@ pub struct Attack {
     pub last_attack_motion: u32,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct PendingSkill {
+    pub target_id: u32,
+    pub skill_id: u32,
+    pub skill_level: u8,
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Damage {
     pub target_id: u32,

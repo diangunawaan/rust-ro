@@ -8,6 +8,7 @@ use std::sync::mpsc::SyncSender;
 use models::enums::EnumWithNumberValue;
 use models::enums::action::ActionType;
 use models::enums::skill::SkillType;
+use models::enums::skill_enums::SkillEnum;
 use models::position::Position;
 use models::status::{Status, StatusSnapshot};
 use models::status_bonus::BonusExpiry;
@@ -352,12 +353,68 @@ impl ServerService {
         if character.is_using_skill() {
             return;
         }
-        if character.is_moving() {
-            self.character_service.cancel_movement(character, tick);
-        }
         let target = Self::get_target(server_state, character, Some(character_use_skill.target_id));
         if target.is_none() {
             return;
+        }
+        let target_snapshot = target.as_ref().unwrap();
+
+        let skill_enum = SkillEnum::from_id(character_use_skill.skill_id);
+        let skill = skills::skill_enums::to_object(skill_enum, character_use_skill.skill_level);
+        if skill.is_none() {
+            return;
+        }
+        let skill = skill.unwrap();
+        let skill_range = skill.range();
+        let effective_range = if skill_range < 0 {
+            character.status.attack_range() as i8
+        } else {
+            skill_range
+        };
+
+        let is_in_range = effective_range as i16
+            >= manhattan_distance(character.x, character.y, target_snapshot.position.x, target_snapshot.position.y) as i16 - 1;
+
+        if !is_in_range {
+            if character.is_moving() {
+                self.character_service.cancel_movement(character, tick);
+            }
+            character.set_pending_skill(
+                character_use_skill.target_id,
+                character_use_skill.skill_id,
+                character_use_skill.skill_level,
+            );
+            let maybe_map_instance = server_state.get_map_instance(character.current_map_name(), character.current_map_instance());
+            let map_instance = maybe_map_instance.as_ref().unwrap();
+            let path = path_search_client_side_algorithm(
+                map_instance.x_size(),
+                map_instance.y_size(),
+                map_instance.state().cells(),
+                character.x,
+                character.y,
+                target_snapshot.position.x,
+                target_snapshot.position.y,
+            );
+            let path = Movement::from_path(path, tick);
+            let current_position = Position {
+                x: character.x,
+                y: character.y,
+                dir: 0,
+            };
+            self.movement_task_queue
+                .add_to_first_index(GameEvent::CharacterMove(CharacterMovement {
+                    char_id: character.char_id,
+                    start_at: tick,
+                    destination: target_snapshot.position,
+                    current_position,
+                    path,
+                    cancel_attack: false,
+                }));
+            return;
+        }
+
+        if character.is_moving() {
+            self.character_service.cancel_movement(character, tick);
         }
         let skill_use_response = self.skill_service.start_use_skill(
             character,
@@ -371,6 +428,56 @@ impl ServerService {
         );
         if skill_use_response.is_valid() && skill_use_response.has_no_delay() {
             self.character_use_skill(server_state, tick, character);
+        }
+    }
+
+    pub fn character_pending_skill(&self, server_state: &ServerState, tick: u128, character: &mut Character) {
+        if !character.has_pending_skill() {
+            return;
+        }
+        let pending = *character.pending_skill();
+        let target = Self::get_target(server_state, character, Some(pending.target_id));
+        if target.is_none() {
+            character.clear_pending_skill();
+            return;
+        }
+        let target_snapshot = target.as_ref().unwrap();
+
+        let skill_enum = SkillEnum::from_id(pending.skill_id);
+        let skill = skills::skill_enums::to_object(skill_enum, pending.skill_level);
+        if skill.is_none() {
+            character.clear_pending_skill();
+            return;
+        }
+        let skill = skill.unwrap();
+        let skill_range = skill.range();
+        let effective_range = if skill_range < 0 {
+            character.status.attack_range() as i8
+        } else {
+            skill_range
+        };
+
+        let is_in_range = effective_range as i16
+            >= manhattan_distance(character.x, character.y, target_snapshot.position.x, target_snapshot.position.y) as i16 - 1;
+
+        if is_in_range {
+            character.clear_pending_skill();
+            if character.is_moving() {
+                self.character_service.cancel_movement(character, tick);
+            }
+            let skill_use_response = self.skill_service.start_use_skill(
+                character,
+                target,
+                &self.get_status_snapshot(&character.status, tick),
+                self.get_target_status(server_state, character, Some(pending.target_id), tick)
+                    .as_ref(),
+                pending.skill_id,
+                pending.skill_level,
+                tick,
+            );
+            if skill_use_response.is_valid() && skill_use_response.has_no_delay() {
+                self.character_use_skill(server_state, tick, character);
+            }
         }
     }
 
