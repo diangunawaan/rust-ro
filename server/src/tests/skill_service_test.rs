@@ -90,7 +90,7 @@ mod tests {
     use models::enums::skill::UseSkillFailure;
     use models::enums::skill_enums::SkillEnum;
     use models::enums::{EnumWithNumberValue, EnumWithStringValue};
-    use models::position::Position;
+    use movement::position::Position;
     use models::status::{KnownSkill, Status};
     use models::status_bonus::{StatusBonus, StatusBonuses};
     use packets::packets::{PacketZcAckTouseskill, PacketZcActionFailure, PacketZcUseSkill, PacketZcUseskillAck2};

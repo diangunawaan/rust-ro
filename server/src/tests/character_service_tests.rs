@@ -77,7 +77,7 @@ mod tests {
     use models::enums::skill_enums::SkillEnum;
     use models::enums::status::StatusTypes;
     use models::enums::{EnumWithNumberValue, EnumWithStringValue};
-    use models::position::Position;
+    use movement::position::Position;
     use models::status::KnownSkill;
     use packets::packets::{
         PacketZcLongparChange, PacketZcNotifyEffect, PacketZcParChange, PacketZcSkillinfoList, PacketZcSpriteChange2,

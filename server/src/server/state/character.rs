@@ -6,7 +6,7 @@ use accessor::Setters;
 use models::enums::item::ItemType;
 use models::enums::look::LookType;
 use models::item::EquippedItem;
-use models::position::Position;
+use movement::position::Position;
 use models::status::Status;
 use skills::Skill;
 

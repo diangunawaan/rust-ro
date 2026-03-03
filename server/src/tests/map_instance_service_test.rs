@@ -56,7 +56,7 @@ mod tests {
     use std::time::Duration;
 
     use models::item::DroppedItem;
-    use models::position::Position;
+    use movement::position::Position;
     use packets::packets::PacketZcItemDisappear;
 
     use crate::server::map_instance_loop::MAP_LOOP_TICK_RATE;

@@ -35,7 +35,7 @@ fn before_each() -> MobServiceTestContext {
 mod tests {
     use models::enums::mob::MobMode;
     use models::enums::EnumWithMaskValueU32;
-    use models::position::Position;
+    use movement::position::Position;
 
     use crate::server::model::map_item::{MapItem, MapItemSnapshot, MapItemType};
     use crate::server::service::mob_service::MobAIAction;

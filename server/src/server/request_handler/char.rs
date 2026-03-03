@@ -3,7 +3,7 @@ use std::net::Shutdown::Both;
 use std::sync::{Arc, Mutex};
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use models::position::Position;
+use movement::position::Position;
 use models::status::KnownSkill;
 use packets::packets::{
     CharacterInfoNeoUnion, Packet, PacketChDeleteChar4Reserved, PacketChEnter, PacketChMakeChar, PacketChMakeChar2, PacketChMakeChar3,
@@ -15,7 +15,6 @@ use packets::packets::{
 };
 
 use crate::repository::model::char_model::{CharInsertModel, CharSelectModel, CharacterInfoNeoUnionWrapped};
-use crate::server::Server;
 use crate::server::model::events::game_event::GameEvent::{CharacterInitInventory, CharacterJoinGame};
 use crate::server::model::events::game_event::{CharacterRemoveFromMap, GameEvent};
 use crate::server::model::hotkey::Hotkey;
@@ -26,6 +25,7 @@ use crate::server::model::status::StatusFromDb;
 use crate::server::script::ScriptGlobalVariableStore;
 use crate::server::service::global_config_service::GlobalConfigService;
 use crate::server::state::character::Character;
+use crate::server::Server;
 use crate::util::packet::chain_packets;
 use crate::util::string::StringUtil;
 use crate::util::tick::get_tick_client;

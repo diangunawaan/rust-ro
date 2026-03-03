@@ -4,7 +4,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::SeqCst;
 
 use hashbrown::HashMap;
-use models::position::Position;
+use movement::position::Position;
 
 use crate::util::hasher::NoopHasherU32;
 

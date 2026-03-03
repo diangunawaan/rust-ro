@@ -150,7 +150,7 @@ mod tests {
     use models::enums::bonus::BonusType;
     use models::enums::skill_enums::SkillEnum;
     use models::item::DroppedItem;
-    use models::position::Position;
+    use movement::position::Position;
     use models::status::KnownSkill;
     use models::status_bonus::{StatusBonus, StatusBonuses};
     use packets::packets::{PacketZcMsgStateChange, PacketZcMsgStateChange2};

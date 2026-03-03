@@ -3,7 +3,7 @@
 mod tests {
     use std::time::Duration;
 
-    use models::position::Position;
+    use movement::position::Position;
 
     use crate::server::model::events::game_event::{CharacterChangeMap, GameEvent};
     use crate::server::model::events::map_event::MapEvent;

@@ -1,7 +1,8 @@
-use accessor::Setters;
-
-use crate::util::coordinate;
-
+pub use tracing::{debug, info, warn};
+#[inline]
+pub fn get_cell_index_of(x: u16, y: u16, x_size: u16) -> usize {
+    (x as u32 + y as u32 * x_size as u32) as usize
+}
 // Coming from herculesWS
 pub static MOVE_COST: u16 = 10;
 pub static MOVE_DIAGONAL_COST: u16 = 14;
@@ -11,20 +12,34 @@ pub static DIR_WEST: u8 = 2;
 pub static DIR_SOUTH: u8 = 4;
 pub static DIR_EAST: u8 = 8;
 
-#[derive(Copy, Clone, Debug, Setters)]
+#[derive(Copy, Clone, Debug)]
 pub struct PathNode {
     pub id: u32,
-    #[set]
     pub parent_id: u32,
     pub x: u16,
     pub y: u16,
-    #[set]
     pub g_cost: u16,
-    #[set]
     pub f_cost: u16, // g_cost + heuristic
-    #[set]
     pub is_open: bool,
     pub is_diagonal: bool,
+}
+
+impl PathNode {
+    pub fn set_parent_id(&mut self, parent_id: u32) {
+        self.parent_id = parent_id;
+    }
+
+    pub fn set_g_cost(&mut self, g_cost: u16) {
+        self.g_cost = g_cost;
+    }
+
+    pub fn set_f_cost(&mut self, f_cost: u16) {
+        self.f_cost = f_cost;
+    }
+
+    pub fn set_is_open(&mut self, is_open: bool) {
+        self.is_open = is_open;
+    }
 }
 
 // Coming from herculesWS
@@ -53,7 +68,7 @@ fn is_cell_walkable(cells: &[u16], x: u16, y: u16, x_size: u16) -> bool {
         warn!("Cannot call is_cell_walkable as cells are not initialized, returning false");
         return false;
     }
-    let index = coordinate::get_cell_index_of(x, y, x_size);
+    let index = get_cell_index_of(x, y, x_size);
     (cells.get(index).unwrap() & 0b0000_0000_0000_0001) == 0b0000_0000_0000_0001
 }
 

@@ -3,7 +3,7 @@ use std::net::TcpStream;
 use std::sync::atomic::AtomicI8;
 use std::sync::{Arc, RwLock};
 
-use models::position::Position;
+use movement::position::Position;
 use models::status::StatusSnapshot;
 
 use crate::server::model::map::MAP_EXT;

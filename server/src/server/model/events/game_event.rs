@@ -1,6 +1,6 @@
 use models::enums::class::JobName;
 use models::enums::look::LookType;
-use models::position::Position;
+use movement::position::Position;
 
 use crate::repository::model::item_model::InventoryItemModel;
 use crate::server::model::action::Damage;

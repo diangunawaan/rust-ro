@@ -13,7 +13,7 @@ use models::enums::look::LookType;
 use models::enums::skill_enums::SkillEnum;
 use models::enums::status::StatusTypes;
 use models::enums::EnumWithNumberValue;
-use models::position::Position;
+use movement::position::Position;
 use models::status::{KnownSkill, Status, StatusSnapshot};
 use packets::packets::{
     Packet, PacketZcAttackRange, PacketZcItemDisappear, PacketZcItemEntry, PacketZcLongparChange, PacketZcMsgStateChange,

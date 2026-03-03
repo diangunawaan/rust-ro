@@ -9,7 +9,7 @@ use models::enums::EnumWithNumberValue;
 use models::enums::action::ActionType;
 use models::enums::skill::SkillType;
 use models::enums::skill_enums::SkillEnum;
-use models::position::Position;
+use movement::position::Position;
 use models::status::{Status, StatusSnapshot};
 use models::status_bonus::BonusExpiry;
 use packets::packets::{Packet, PacketZcMsgStateChange, PacketZcNotifyAct};

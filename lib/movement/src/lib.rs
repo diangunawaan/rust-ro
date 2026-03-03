@@ -1,6 +1,8 @@
-use models::position::Position;
+use crate::path::PathNode;
+use crate::position::Position;
 
-use crate::server::model::path::PathNode;
+pub mod path;
+pub mod position;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Movement {

@@ -6,7 +6,7 @@ use models::enums::action::ActionType;
 use models::enums::vanish::VanishType;
 use models::enums::EnumWithNumberValue;
 use models::item::DroppedItem;
-use models::position::Position;
+use movement::position::Position;
 use packets::packets::{Packet, PacketZcItemDisappear, PacketZcItemFallEntry, PacketZcNotifyAct, PacketZcNotifyMove, PacketZcNotifyVanish};
 
 use crate::server::game_loop::GAME_TICK_RATE;

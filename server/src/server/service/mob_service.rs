@@ -1,7 +1,7 @@
 use std::sync::mpsc::SyncSender;
 
 use models::enums::mob::MobMode;
-use models::position::Position;
+use movement::position::Position;
 
 use crate::server::model::events::client_notification::Notification;
 use crate::server::model::events::map_event::MobAttackCharacter;

@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use models::position::Position;
+use movement::position::Position;
 use packets::packets::{PacketCzRequestMove, PacketCzRequestMove2};
 
 use crate::server::model::events::game_event::CharacterMovement;

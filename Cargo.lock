@@ -1582,6 +1582,15 @@ version = "0.1.0"
 dependencies = [
  "accessor",
  "enum_macro",
+ "movement",
+ "tracing",
+]
+
+[[package]]
+name = "movement"
+version = "0.1.0"
+dependencies = [
+ "packets",
  "tracing",
 ]
 
@@ -2439,6 +2448,7 @@ dependencies = [
  "md5",
  "metrics",
  "models",
+ "movement",
  "packets",
  "rand",
  "rathena_script_lang_interpreter",
