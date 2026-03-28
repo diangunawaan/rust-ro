@@ -59,6 +59,8 @@ pub fn write_packets_struct(packets: Vec<PacketStructDefinition>, nested_structu
         .unwrap();
 
     write_packet_parser(&mut file_packets_parser, &packets);
+    write_variable_length_check(&mut file_packets_parser, &packets);
+    write_packet_parser_json(&mut file_packets_parser, &packets);
     write_packet_trait(&mut file_packets);
     for packet in packets {
         write_struct_definition(&mut file_packets, &packet.struct_def);
@@ -145,6 +147,95 @@ fn write_packet_parser(file: &mut File, packets: &[PacketStructDefinition]) {
     file.write_all("    Box::new(PacketUnknown::from(buffer))\n".to_string().as_bytes())
         .unwrap();
     file.write_all("}\n\n".to_string().as_bytes()).unwrap();
+}
+
+fn write_variable_length_check(file: &mut File, packets: &[PacketStructDefinition]) {
+    file.write_all(
+        "pub fn is_variable_length(packet_id: [u8; 2], packetver: u32) -> bool {\n"
+            .as_bytes(),
+    )
+    .unwrap();
+    #[derive(Clone)]
+    struct PacketAndVersion {
+        id: String,
+        version: Option<u32>,
+    }
+    let mut variable_packets = vec![];
+    for struct_def in packets.iter() {
+        let has_vec = struct_def.struct_def.fields.iter().any(|f| f.data_type.name == "Vec");
+        if has_vec {
+            for pid in struct_def.ids.iter() {
+                variable_packets.push(PacketAndVersion {
+                    id: pid.id.clone(),
+                    version: pid.packetver,
+                });
+            }
+        }
+    }
+    let mut with_version = variable_packets
+        .iter()
+        .filter(|p| p.version.is_some())
+        .cloned()
+        .collect::<Vec<PacketAndVersion>>();
+    let without_version = variable_packets
+        .iter()
+        .filter(|p| p.version.is_none())
+        .cloned()
+        .collect::<Vec<PacketAndVersion>>();
+    with_version.sort_by(|a, b| b.version.unwrap().cmp(&a.version.unwrap()));
+    for packet in with_version.iter() {
+        let id = packet_id(&packet.id).replace("0x", "");
+        let (first_byte, second_byte) = id.split_at(2);
+        file.write_all(
+            format!(
+                "    if packetver >= {} && packet_id == [0x{first_byte}, 0x{second_byte}] {{ return true; }}\n",
+                packet.version.unwrap()
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+    }
+    for packet in without_version.iter() {
+        let id = packet_id(&packet.id).replace("0x", "");
+        let (first_byte, second_byte) = id.split_at(2);
+        file.write_all(
+            format!("    if packet_id == [0x{first_byte}, 0x{second_byte}] {{ return true; }}\n")
+                .as_bytes(),
+        )
+        .unwrap();
+    }
+    file.write_all("    false\n".as_bytes()).unwrap();
+    file.write_all("}\n\n".as_bytes()).unwrap();
+}
+
+fn write_packet_parser_json(file: &mut File, packets: &[PacketStructDefinition]) {
+    #[derive(Clone)]
+    struct PacketAndVersion {
+        id: String,
+        version: Option<u32>,
+        struct_name: String,
+    }
+    let mut packets_with_version = vec![];
+    packets.iter().for_each(|struct_def| {
+        struct_def.ids.iter().for_each(|pid| {
+            packets_with_version.push(PacketAndVersion {
+                id: pid.id.clone(),
+                version: pid.packetver,
+                struct_name: struct_def.struct_def.name.clone(),
+            })
+        })
+    });
+    let mut ids_with_version = packets_with_version
+        .iter()
+        .filter(|p| p.version.is_some())
+        .cloned()
+        .collect::<Vec<PacketAndVersion>>();
+    let ids_without_version = packets_with_version
+        .iter()
+        .filter(|p| p.version.is_none())
+        .cloned()
+        .collect::<Vec<PacketAndVersion>>();
+    ids_with_version.sort_by(|a, b| b.version.unwrap().cmp(&a.version.unwrap()));
 
     file.write_all(
         "pub fn parse_json(json: &str, packetver: u32) -> Result<Box<dyn Packet>, String> {\n"
