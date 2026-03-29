@@ -17593,6 +17593,86 @@ impl Display for PacketZcNotifyMoveentry8 {
     }
 }
 
+impl Debug for PacketZcNotifyMoveentry9 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PacketZcNotifyMoveentry9")
+            .field("packet_id[0, 2]", &format!("{:02X?}", &self.packet_id_raw))
+            .field("packet_length[2, 4]", &format!("{:02X?}", &self.packet_length_raw))
+            .field("objecttype[4, 5]", &format!("{:02X?}", &self.objecttype_raw))
+            .field("gid[5, 9]", &format!("{:02X?}", &self.gid_raw))
+            .field("speed[9, 11]", &format!("{:02X?}", &self.speed_raw))
+            .field("body_state[11, 13]", &format!("{:02X?}", &self.body_state_raw))
+            .field("health_state[13, 15]", &format!("{:02X?}", &self.health_state_raw))
+            .field("effect_state[15, 19]", &format!("{:02X?}", &self.effect_state_raw))
+            .field("job[19, 21]", &format!("{:02X?}", &self.job_raw))
+            .field("head[21, 23]", &format!("{:02X?}", &self.head_raw))
+            .field("weapon[23, 27]", &format!("{:02X?}", &self.weapon_raw))
+            .field("accessory[27, 29]", &format!("{:02X?}", &self.accessory_raw))
+            .field("move_start_time[29, 33]", &format!("{:02X?}", &self.move_start_time_raw))
+            .field("accessory2[33, 35]", &format!("{:02X?}", &self.accessory2_raw))
+            .field("accessory3[35, 37]", &format!("{:02X?}", &self.accessory3_raw))
+            .field("headpalette[37, 39]", &format!("{:02X?}", &self.headpalette_raw))
+            .field("bodypalette[39, 41]", &format!("{:02X?}", &self.bodypalette_raw))
+            .field("head_dir[41, 43]", &format!("{:02X?}", &self.head_dir_raw))
+            .field("robe[43, 45]", &format!("{:02X?}", &self.robe_raw))
+            .field("guid[45, 49]", &format!("{:02X?}", &self.guid_raw))
+            .field("gemblem_ver[49, 51]", &format!("{:02X?}", &self.gemblem_ver_raw))
+            .field("honor[51, 53]", &format!("{:02X?}", &self.honor_raw))
+            .field("virtue[53, 57]", &format!("{:02X?}", &self.virtue_raw))
+            .field("is_pkmode_on[57, 58]", &format!("{:02X?}", &self.is_pkmode_on_raw))
+            .field("sex[58, 59]", &format!("{:02X?}", &self.sex_raw))
+            .field("move_data[59, 65]", &format!("{:02X?}", &self.move_data_raw))
+            .field("x_size[65, 66]", &format!("{:02X?}", &self.x_size_raw))
+            .field("y_size[66, 67]", &format!("{:02X?}", &self.y_size_raw))
+            .field("clevel[67, 69]", &format!("{:02X?}", &self.clevel_raw))
+            .field("font[69, 71]", &format!("{:02X?}", &self.font_raw))
+            .field("hp[71, 75]", &format!("{:02X?}", &self.hp_raw))
+            .field("max_hp[75, 79]", &format!("{:02X?}", &self.max_hp_raw))
+            .field("is_boss[79, 80]", &format!("{:02X?}", &self.is_boss_raw))
+        .finish()
+    }
+}
+
+impl Display for PacketZcNotifyMoveentry9 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut fields = Vec::new();
+        fields.push(format!("packet_id(short as i16)[0, 2]: 0X{:02X?}{:02X?}", &self.packet_id_raw[0], &self.packet_id_raw[1]));
+        fields.push(format!("packet_length(short as i16)[2, 4]: {}", &self.packet_length));
+        fields.push(format!("objecttype(unsigned char as u8)[4, 5]: {}", &self.objecttype));
+        fields.push(format!("gid(unsigned long as u32)[5, 9]: {}", &self.gid));
+        fields.push(format!("speed(short as i16)[9, 11]: {}", &self.speed));
+        fields.push(format!("body_state(short as i16)[11, 13]: {}", &self.body_state));
+        fields.push(format!("health_state(short as i16)[13, 15]: {}", &self.health_state));
+        fields.push(format!("effect_state(int as i32)[15, 19]: {}", &self.effect_state));
+        fields.push(format!("job(short as i16)[19, 21]: {}", &self.job));
+        fields.push(format!("head(short as i16)[21, 23]: {}", &self.head));
+        fields.push(format!("weapon(unsigned long as u32)[23, 27]: {}", &self.weapon));
+        fields.push(format!("accessory(short as i16)[27, 29]: {}", &self.accessory));
+        fields.push(format!("move_start_time(unsigned long as u32)[29, 33]: {}", &self.move_start_time));
+        fields.push(format!("accessory2(short as i16)[33, 35]: {}", &self.accessory2));
+        fields.push(format!("accessory3(short as i16)[35, 37]: {}", &self.accessory3));
+        fields.push(format!("headpalette(short as i16)[37, 39]: {}", &self.headpalette));
+        fields.push(format!("bodypalette(short as i16)[39, 41]: {}", &self.bodypalette));
+        fields.push(format!("head_dir(short as i16)[41, 43]: {}", &self.head_dir));
+        fields.push(format!("robe(short as i16)[43, 45]: {}", &self.robe));
+        fields.push(format!("guid(unsigned long as u32)[45, 49]: {}", &self.guid));
+        fields.push(format!("gemblem_ver(short as i16)[49, 51]: {}", &self.gemblem_ver));
+        fields.push(format!("honor(short as i16)[51, 53]: {}", &self.honor));
+        fields.push(format!("virtue(int as i32)[53, 57]: {}", &self.virtue));
+        fields.push(format!("is_pkmode_on(bool as bool)[57, 58]: {}", &self.is_pkmode_on));
+        fields.push(format!("sex(unsigned char as u8)[58, 59]: {}", &self.sex));
+        fields.push(format!("move_data(unsigned char[] as u8[])[59, 65]: {}", &self.move_data.pretty_output()));
+        fields.push(format!("x_size(unsigned char as u8)[65, 66]: {}", &self.x_size));
+        fields.push(format!("y_size(unsigned char as u8)[66, 67]: {}", &self.y_size));
+        fields.push(format!("clevel(short as i16)[67, 69]: {}", &self.clevel));
+        fields.push(format!("font(short as i16)[69, 71]: {}", &self.font));
+        fields.push(format!("hp(unsigned long as u32)[71, 75]: {}", &self.hp));
+        fields.push(format!("max_hp(unsigned long as u32)[75, 79]: {}", &self.max_hp));
+        fields.push(format!("is_boss(bool as bool)[79, 80]: {}", &self.is_boss));
+        write!(f, "PacketZcNotifyMoveentry9\n {}", fields.join(",\n "))
+    }
+}
+
 impl Debug for PacketZcNotifyAct3 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PacketZcNotifyAct3")

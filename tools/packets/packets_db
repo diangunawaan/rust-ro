@@ -6440,6 +6440,43 @@ struct PACKET_ZC_NOTIFY_MOVEENTRY8 {
   unsigned char name[24]
 }
 
+0x0914
+struct PACKET_ZC_NOTIFY_MOVEENTRY9 {
+  short PacketId
+  short PacketLength
+  unsigned char objecttype
+  unsigned long GID
+  short speed
+  short bodyState
+  short healthState
+  int effectState
+  short job
+  short head
+  unsigned long weapon
+  short accessory
+  unsigned long moveStartTime
+  short accessory2
+  short accessory3
+  short headpalette
+  short bodypalette
+  short headDir
+  short robe
+  unsigned long GUID
+  short GEmblemVer
+  short honor
+  int virtue
+  bool isPKModeON
+  unsigned char sex
+  unsigned byte MoveData[6]
+  unsigned char xSize
+  unsigned char ySize
+  short clevel
+  short font
+  unsigned long hp
+  unsigned long maxHP
+  bool isBoss
+ }
+
 0x08c8
 struct PACKET_ZC_NOTIFY_ACT3 {
   short PacketId
