@@ -162,8 +162,12 @@ fn write_variable_length_check(file: &mut File, packets: &[PacketStructDefinitio
     }
     let mut variable_packets = vec![];
     for struct_def in packets.iter() {
-        let has_vec = struct_def.struct_def.fields.iter().any(|f| f.data_type.name == "Vec");
-        if has_vec {
+        let has_variable_field = struct_def.struct_def.fields.iter().any(|f| {
+            f.data_type.name == "Vec"
+                || f.data_type.name == "String"
+                || (f.data_type.name == "Array" && f.length == -1)
+        });
+        if has_variable_field {
             for pid in struct_def.ids.iter() {
                 variable_packets.push(PacketAndVersion {
                     id: pid.id.clone(),
