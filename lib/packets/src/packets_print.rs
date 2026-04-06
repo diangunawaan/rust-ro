@@ -1816,7 +1816,8 @@ impl Debug for PacketZcReqWearEquipAck {
             .field("packet_id[0, 2]", &format!("{:02X?}", &self.packet_id_raw))
             .field("index[2, 4]", &format!("{:02X?}", &self.index_raw))
             .field("wear_location[4, 6]", &format!("{:02X?}", &self.wear_location_raw))
-            .field("result[6, 7]", &format!("{:02X?}", &self.result_raw))
+            .field("view_id[6, 8]", &format!("{:02X?}", &self.view_id_raw))
+            .field("result[8, 9]", &format!("{:02X?}", &self.result_raw))
         .finish()
     }
 }
@@ -1827,7 +1828,8 @@ impl Display for PacketZcReqWearEquipAck {
         fields.push(format!("packet_id(short as i16)[0, 2]: 0X{:02X?}{:02X?}", &self.packet_id_raw[0], &self.packet_id_raw[1]));
         fields.push(format!("index(unsigned short as u16)[2, 4]: {}", &self.index));
         fields.push(format!("wear_location(unsigned short as u16)[4, 6]: {}", &self.wear_location));
-        fields.push(format!("result(unsigned char as u8)[6, 7]: {}", &self.result));
+        fields.push(format!("view_id(unsigned short as u16)[6, 8]: {}", &self.view_id));
+        fields.push(format!("result(unsigned char as u8)[8, 9]: {}", &self.result));
         write!(f, "PacketZcReqWearEquipAck\n {}", fields.join(",\n "))
     }
 }

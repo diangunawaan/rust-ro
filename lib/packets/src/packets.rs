@@ -1178,6 +1178,8 @@ pub struct PacketZcReqWearEquipAck {
     pub index_raw: [u8; 2],
     pub wear_location: u16,
     pub wear_location_raw: [u8; 2],
+    pub view_id: u16,
+    pub view_id_raw: [u8; 2],
     pub result: u8,
     pub result_raw: [u8; 1],
 }

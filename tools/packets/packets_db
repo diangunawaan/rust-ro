@@ -735,6 +735,7 @@ struct PACKET_ZC_REQ_WEAR_EQUIP_ACK {
   short PacketId
   unsigned short index
   unsigned short wearLocation
+  unsigned short viewId
   unsigned char result
  }
 0x08d0
