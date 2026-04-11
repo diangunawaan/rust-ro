@@ -163,7 +163,7 @@ fn write_variable_length_check(file: &mut File, packets: &[PacketStructDefinitio
     let mut variable_packets = vec![];
     for struct_def in packets.iter() {
         let has_variable_field = struct_def.struct_def.fields.iter().any(|f| {
-            f.data_type.name == "Vec"
+            (f.data_type.name == "Vec" && f.length == -1)
                 || f.data_type.name == "String"
                 || (f.data_type.name == "Array" && f.length == -1)
         });
