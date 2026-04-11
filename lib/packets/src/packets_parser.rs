@@ -2432,6 +2432,9 @@ pub fn parse(buffer: &[u8], packetver: u32) -> Box<dyn Packet> {
 }
 
 pub fn is_variable_length(packet_id: [u8; 2], packetver: u32) -> bool {
+    if packet_id == [0x69, 0x00] { return true; }
+    if packet_id == [0xc4, 0x0a] { return true; }
+    if packet_id == [0x6b, 0x00] { return true; }
     if packet_id == [0x8c, 0x00] { return true; }
     if packet_id == [0x8d, 0x00] { return true; }
     if packet_id == [0x8e, 0x00] { return true; }
@@ -2439,40 +2442,110 @@ pub fn is_variable_length(packet_id: [u8; 2], packetver: u32) -> bool {
     if packet_id == [0x97, 0x00] { return true; }
     if packet_id == [0x99, 0x00] { return true; }
     if packet_id == [0x9a, 0x00] { return true; }
+    if packet_id == [0xa3, 0x00] { return true; }
+    if packet_id == [0xa4, 0x00] { return true; }
+    if packet_id == [0xa5, 0x00] { return true; }
+    if packet_id == [0xa6, 0x00] { return true; }
     if packet_id == [0xb4, 0x00] { return true; }
     if packet_id == [0xb7, 0x00] { return true; }
+    if packet_id == [0xc6, 0x00] { return true; }
+    if packet_id == [0xc7, 0x00] { return true; }
+    if packet_id == [0xc8, 0x00] { return true; }
+    if packet_id == [0xc9, 0x00] { return true; }
+    if packet_id == [0xd4, 0x00] { return true; }
     if packet_id == [0xd5, 0x00] { return true; }
     if packet_id == [0xd7, 0x00] { return true; }
+    if packet_id == [0xdb, 0x00] { return true; }
     if packet_id == [0xde, 0x00] { return true; }
     if packet_id == [0xdf, 0x00] { return true; }
     if packet_id == [0xf3, 0x00] { return true; }
+    if packet_id == [0xfb, 0x00] { return true; }
     if packet_id == [0x08, 0x01] { return true; }
     if packet_id == [0x09, 0x01] { return true; }
+    if packet_id == [0x0f, 0x01] { return true; }
+    if packet_id == [0x22, 0x01] { return true; }
+    if packet_id == [0x23, 0x01] { return true; }
+    if packet_id == [0x2f, 0x01] { return true; }
+    if packet_id == [0x33, 0x01] { return true; }
+    if packet_id == [0x34, 0x01] { return true; }
+    if packet_id == [0x36, 0x01] { return true; }
+    if packet_id == [0x4c, 0x01] { return true; }
     if packet_id == [0x52, 0x01] { return true; }
     if packet_id == [0x53, 0x01] { return true; }
+    if packet_id == [0x54, 0x01] { return true; }
+    if packet_id == [0x55, 0x01] { return true; }
+    if packet_id == [0x56, 0x01] { return true; }
+    if packet_id == [0x60, 0x01] { return true; }
+    if packet_id == [0x61, 0x01] { return true; }
+    if packet_id == [0x62, 0x01] { return true; }
+    if packet_id == [0x63, 0x01] { return true; }
+    if packet_id == [0x64, 0x01] { return true; }
+    if packet_id == [0x66, 0x01] { return true; }
+    if packet_id == [0x74, 0x01] { return true; }
     if packet_id == [0x77, 0x01] { return true; }
     if packet_id == [0x7b, 0x01] { return true; }
     if packet_id == [0x7e, 0x01] { return true; }
     if packet_id == [0x7f, 0x01] { return true; }
+    if packet_id == [0xa6, 0x01] { return true; }
+    if packet_id == [0xad, 0x01] { return true; }
+    if packet_id == [0xb2, 0x01] { return true; }
     if packet_id == [0xc3, 0x01] { return true; }
     if packet_id == [0x01, 0xd5] { return true; }
     if packet_id == [0xdc, 0x01] { return true; }
+    if packet_id == [0xee, 0x01] { return true; }
+    if packet_id == [0xef, 0x01] { return true; }
+    if packet_id == [0xf0, 0x01] { return true; }
     if packet_id == [0xf1, 0x01] { return true; }
+    if packet_id == [0xfc, 0x01] { return true; }
+    if packet_id == [0x01, 0x02] { return true; }
+    if packet_id == [0x0d, 0x02] { return true; }
+    if packet_id == [0x21, 0x02] { return true; }
+    if packet_id == [0x40, 0x02] { return true; }
     if packet_id == [0x42, 0x02] { return true; }
     if packet_id == [0x48, 0x02] { return true; }
+    if packet_id == [0x52, 0x02] { return true; }
     if packet_id == [0x5a, 0x02] { return true; }
+    if packet_id == [0x7a, 0x02] { return true; }
     if packet_id == [0x7e, 0x02] { return true; }
+    if packet_id == [0x87, 0x02] { return true; }
+    if packet_id == [0x95, 0x02] { return true; }
+    if packet_id == [0x96, 0x02] { return true; }
+    if packet_id == [0x97, 0x02] { return true; }
+    if packet_id == [0x9d, 0x02] { return true; }
+    if packet_id == [0xb1, 0x02] { return true; }
+    if packet_id == [0xb2, 0x02] { return true; }
+    if packet_id == [0xb5, 0x02] { return true; }
     if packet_id == [0xc1, 0x02] { return true; }
     if packet_id == [0xc2, 0x02] { return true; }
+    if packet_id == [0xd0, 0x02] { return true; }
+    if packet_id == [0xd1, 0x02] { return true; }
+    if packet_id == [0xd2, 0x02] { return true; }
+    if packet_id == [0xd7, 0x02] { return true; }
     if packet_id == [0xdb, 0x02] { return true; }
     if packet_id == [0xdc, 0x02] { return true; }
     if packet_id == [0xe7, 0x02] { return true; }
+    if packet_id == [0xe8, 0x02] { return true; }
+    if packet_id == [0xe9, 0x02] { return true; }
+    if packet_id == [0xea, 0x02] { return true; }
+    if packet_id == [0x5d, 0x03] { return true; }
+    if packet_id == [0x3e, 0x04] { return true; }
     if packet_id == [0x42, 0x04] { return true; }
+    if packet_id == [0x44, 0x04] { return true; }
+    if packet_id == [0x48, 0x04] { return true; }
     if packet_id == [0xe5, 0x07] { return true; }
     if packet_id == [0xe8, 0x07] { return true; }
+    if packet_id == [0xeb, 0x07] { return true; }
+    if packet_id == [0x00, 0x08] { return true; }
+    if packet_id == [0x01, 0x08] { return true; }
+    if packet_id == [0x05, 0x08] { return true; }
+    if packet_id == [0x11, 0x08] { return true; }
+    if packet_id == [0x13, 0x08] { return true; }
+    if packet_id == [0x18, 0x08] { return true; }
+    if packet_id == [0x19, 0x08] { return true; }
     if packet_id == [0x1f, 0x08] { return true; }
     if packet_id == [0x5a, 0x82] { return true; }
     if packet_id == [0x25, 0x08] { return true; }
+    if packet_id == [0x36, 0x08] { return true; }
     if packet_id == [0x3b, 0x0a] { return true; }
     false
 }

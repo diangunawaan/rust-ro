@@ -92,6 +92,11 @@ lazy_static! {
             cname: "[]".to_string(),
             length: None
         }),
+        ("array of struct with size", Type {
+            name: "Vec".to_string(),
+            cname: "[]".to_string(),
+            length: Some(1)
+        }),
         ("array", Type {
             name: "Array".to_string(),
             cname: "[]".to_string(),
@@ -99,7 +104,7 @@ lazy_static! {
         }),
     ]);
     static ref STRUCT_REGEX: Regex = Regex::new(r"struct\s([^\s]*)\s.*").unwrap();
-    static ref NESTED_STRUCT_REGEX: Regex = Regex::new(r"struct\s([^\s]*)\s([^\s\[]*)\[?.*/?\s(\d+)?").unwrap();
+    static ref NESTED_STRUCT_REGEX: Regex = Regex::new(r"struct\s([^\s]*)\s([^\s\[]*)\[?(\d+)?\]?[^/]*(?://\sSize\s(\d+))?").unwrap();
     static ref STRING_LEN_REGEX: Regex = Regex::new(r"\w*\[(\d*)\]").unwrap();
     static ref AFTER_UNDERSCORE_CHAR_REGEX: Regex = Regex::new(r"_(\w)").unwrap();
     static ref UPPERCASE_CHAR_REGEX: Regex = Regex::new(r"([A-Z])").unwrap();
@@ -221,7 +226,7 @@ fn get_field_for_nested_struct<'a>(line: String, position: i16) -> StructField<'
     let complex_type_name = nested_struct_matches.get(1).unwrap().as_str().to_string();
     let name = nested_struct_matches.get(2).unwrap().as_str().to_string();
     let mut length: i16 = -1;
-    let length_match = nested_struct_matches.get(3);
+    let length_match = nested_struct_matches.get(4);
     if let Some(length_match) = length_match {
         length = length_match.as_str().parse::<i16>().unwrap();
     }
@@ -229,7 +234,11 @@ fn get_field_for_nested_struct<'a>(line: String, position: i16) -> StructField<'
         name: get_field_name(&name),
         position,
         data_type: if line.contains('[') {
-            TYPES_MAP.get("array of struct").unwrap()
+            if let Some(array_len) = nested_struct_matches.get(3) {
+                TYPES_MAP.get("array of struct with size").unwrap()
+            } else {
+                TYPES_MAP.get("array of struct").unwrap()
+            }
         } else {
             TYPES_MAP.get("struct").unwrap()
         },
