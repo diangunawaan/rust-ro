@@ -219,62 +219,61 @@ impl JobName {
         matches!(self, JobName::Taekwon | JobName::StarGladiator | JobName::SoulLinker)
     }
 
+    pub fn job_family(&self) -> JobFamily {
+        match self {
+            JobName::Novice | JobName::SuperNovice | JobName::NoviceHigh
+            | JobName::BabyNovice | JobName::SuperBaby => JobFamily::Novice,
+
+            JobName::Swordsman | JobName::SwordsmanHigh | JobName::Knight
+            | JobName::Crusader | JobName::BabySwordsman | JobName::BabyKnight
+            | JobName::BabyCrusader | JobName::LordKnight | JobName::Paladin => JobFamily::Swordsman,
+
+            JobName::Mage | JobName::MageHigh | JobName::Wizard | JobName::Sage
+            | JobName::BabyMage | JobName::BabyWizard | JobName::BabySage
+            | JobName::HighWizard | JobName::Professor => JobFamily::Mage,
+
+            JobName::Archer | JobName::ArcherHigh | JobName::Hunter
+            | JobName::BabyArcher | JobName::BabyHunter
+            | JobName::Sniper => JobFamily::Archer,
+
+            JobName::Acolyte | JobName::AcolyteHigh | JobName::Priest
+            | JobName::BabyAcolyte | JobName::BabyPriest
+            | JobName::HighPriest => JobFamily::Acolyte,
+
+            JobName::Monk | JobName::BabyMonk | JobName::Champion => JobFamily::Monk,
+
+            JobName::Merchant | JobName::MerchantHigh | JobName::Blacksmith
+            | JobName::Alchemist | JobName::BabyMerchant | JobName::BabyBlacksmith
+            | JobName::BabyAlchemist | JobName::Creator | JobName::Whitesmith => JobFamily::Merchant,
+
+            JobName::Thief | JobName::ThiefHigh | JobName::Rogue
+            | JobName::BabyThief | JobName::BabyRogue | JobName::Stalker => JobFamily::Thief,
+
+            JobName::Assassin | JobName::BabyAssassin | JobName::AssassinCross => JobFamily::Assassin,
+
+            JobName::Bard | JobName::BabyBard | JobName::Clown => JobFamily::Bard,
+
+            JobName::Dancer | JobName::BabyDancer | JobName::Gypsy => JobFamily::Dancer,
+
+            JobName::Taekwon | JobName::StarGladiator | JobName::SoulLinker => JobFamily::Taekwon,
+
+            JobName::Gunslinger => JobFamily::Gunslinger,
+            JobName::Ninja => JobFamily::Ninja,
+
+            _ => JobFamily::Other,
+        }
+    }
+
     pub fn mask(&self) -> u64 {
-        let base_mask = match self {
-            // 1-1
-            JobName::Novice | JobName::SuperNovice | JobName::NoviceHigh => 1,
-            JobName::Swordsman
-            | JobName::SwordsmanHigh
-            | JobName::Knight
-            | JobName::Crusader
-            | JobName::BabyKnight
-            | JobName::BabyCrusader
-            | JobName::LordKnight
-            | JobName::Paladin => 2,
-            JobName::Mage
-            | JobName::MageHigh
-            | JobName::Wizard
-            | JobName::Sage
-            | JobName::BabyWizard
-            | JobName::BabySage
-            | JobName::HighWizard
-            | JobName::Professor => 4,
-            JobName::Archer
-            | JobName::ArcherHigh
-            | JobName::Hunter
-            | JobName::Bard
-            | JobName::Dancer
-            | JobName::BabyHunter
-            | JobName::BabyBard
-            | JobName::BabyDancer
-            | JobName::Sniper
-            | JobName::Clown
-            | JobName::Gypsy => 8,
-            JobName::Acolyte
-            | JobName::AcolyteHigh
-            | JobName::Priest
-            | JobName::Monk
-            | JobName::BabyPriest
-            | JobName::BabyMonk
-            | JobName::HighPriest
-            | JobName::Champion => 16,
-            JobName::Merchant
-            | JobName::MerchantHigh
-            | JobName::Blacksmith
-            | JobName::Alchemist
-            | JobName::BabyBlacksmith
-            | JobName::BabyAlchemist
-            | JobName::Creator
-            | JobName::Whitesmith => 32,
-            JobName::Thief
-            | JobName::ThiefHigh
-            | JobName::Assassin
-            | JobName::Rogue
-            | JobName::BabyAssassin
-            | JobName::BabyRogue
-            | JobName::AssassinCross
-            | JobName::Stalker => 64,
-            JobName::Taekwon | JobName::StarGladiator | JobName::SoulLinker => 128,
+        let base_mask = match self.job_family() {
+            JobFamily::Novice => 1,
+            JobFamily::Swordsman => 2,
+            JobFamily::Mage => 4,
+            JobFamily::Archer | JobFamily::Bard | JobFamily::Dancer => 8,
+            JobFamily::Acolyte | JobFamily::Monk => 16,
+            JobFamily::Merchant => 32,
+            JobFamily::Thief | JobFamily::Assassin => 64,
+            JobFamily::Taekwon => 128,
             _ => 0,
         };
 
@@ -578,6 +577,25 @@ impl JobName {
         }
         None
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JobFamily {
+    Novice,
+    Swordsman,
+    Mage,
+    Archer,
+    Acolyte,
+    Monk,
+    Merchant,
+    Thief,
+    Assassin,
+    Bard,
+    Dancer,
+    Taekwon,
+    Gunslinger,
+    Ninja,
+    Other,
 }
 
 #[derive(WithStringValue, WithMaskValueU64)]
