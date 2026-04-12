@@ -2218,7 +2218,7 @@ pub fn parse(buffer: &[u8], packetver: u32) -> Box<dyn Packet> {
     if buffer[0] == 0x0d && buffer[1] == 0x08 {
         return Box::new(PacketZcSimpleCashBtnshow::from(buffer, packetver));
     }
-    if buffer[0] == 0x08 && buffer[1] == 0x0e {
+    if buffer[0] == 0x0e && buffer[1] == 0x08 {
         return Box::new(PacketZcNotifyHpToGroupmR2::from(buffer, packetver));
     }
     if buffer[0] == 0x0f && buffer[1] == 0x08 {
@@ -4767,7 +4767,7 @@ pub fn parse_json(json: &str, packetver: u32) -> Result<Box<dyn Packet>, String>
     if packet_id.value.unwrap().eq("0x0d08") {
         return PacketZcSimpleCashBtnshow::from_json(entries, packetver).map(|p| Box::new(p) as Box<dyn Packet>);
     }
-    if packet_id.value.unwrap().eq("0x080e") {
+    if packet_id.value.unwrap().eq("0x0e08") {
         return PacketZcNotifyHpToGroupmR2::from_json(entries, packetver).map(|p| Box::new(p) as Box<dyn Packet>);
     }
     if packet_id.value.unwrap().eq("0x0f08") {
